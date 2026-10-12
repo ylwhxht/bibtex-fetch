@@ -32,7 +32,8 @@ with TestClient(app) as client:
     for asset in ("app.js", "styles.css", "favicon.svg"):
         assert client.get("/static/" + asset).status_code == 200
     assert len(parse_bib(client.get("/api/sample").json()["text"])) == 3
-    assert client.get("/api/abbreviations").json()["count"] == 70
+    assert client.get("/api/abbreviations").json()["count"] == 72
+    assert client.get("/api/health").json()["complete_export"] == "v1"
 print("Installed wheel: UI, sample, abbreviations, version and empty local store OK")
 """
 
@@ -107,7 +108,8 @@ def main():
         )
         assert result.returncode == 2, result.stderr
         assert result.stderr and "0/1" in result.stderr
-        assert (temp / "output" / "merged.bib").read_text(encoding="utf-8") == ""
+        assert "@misc{missing," in (temp / "output" / "merged.bib").read_text(encoding="utf-8")
+        assert (temp / "output" / "downloaded.bib").read_text(encoding="utf-8") == ""
         assert "@misc{missing," in (temp / "output" / "failed.bib").read_text(encoding="utf-8")
         assert '"kind": "request"' not in result.stdout
         assert (temp / "output" / "bibtex-fetch-results.zip").is_file()
