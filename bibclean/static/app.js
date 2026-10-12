@@ -22,11 +22,29 @@ const rowStates = {
   success: "已抓取",
   failed: "失败",
 };
+const failureLabels = {
+  ambiguous_title: "需选择版本",
+  title_mismatch: "标题有差异",
+  rate_limited: "来源限流",
+  access_blocked: "访问受限",
+  network_error: "网络失败",
+  source_unavailable: "来源不可用",
+  invalid_response: "响应异常",
+  not_found: "未找到记录",
+  missing_identifier: "缺少检索信息",
+};
+function rowLabel(row) {
+  return row.status === "failed"
+    ? failureLabels[row.failure_code] || "未抓取成功"
+    : rowStates[row.status];
+}
 const kinds = {
   job_start: "START",
   entry: "ENTRY",
   route: "ROUTE",
   search: "SEARCH",
+  search_fallback: "检索回退",
+  source_unavailable: "访问受限",
   request: "GET",
   response: "HTTP",
   search_results: "RESULTS",
@@ -43,6 +61,7 @@ const kinds = {
   retry: "RETRY",
   redirect: "REDIRECT",
   cache: "CACHE",
+  cache_ignored: "跳过旧缓存",
   wait: "WAIT",
   skip: "SKIP",
   row_done: "DONE",
@@ -105,7 +124,7 @@ async function checkServerRules() {
   const notice = $("server-notice");
   try {
     const health = await api("/api/health");
-    titleMatchingReady = health.title_matching === "strict-v1";
+    titleMatchingReady = health.title_matching === "strict-v2";
     completeExportReady =
       health.complete_export === "v1" && health.export_formatting === "v2" &&
       health.tpami_minimal === "v1";
@@ -203,7 +222,7 @@ function renderRows() {
     (r) =>
       (filter === "all" || r.status === filter) &&
       (!query ||
-        `${r.key} ${r.original.title || ""} ${r.source_title || ""}`
+        `${r.key} ${r.original.title || ""} ${r.source_title || ""} ${r.reason || ""} ${rowLabel(r)}`
           .toLowerCase()
           .includes(query)),
   );
@@ -211,7 +230,7 @@ function renderRows() {
     ? rows
         .map(
           (r) =>
-            `<div class="record-row" role="button" tabindex="0" data-row="${r.id}" aria-label="查看 ${esc(r.key)} 的抓取结果"><span class="record-number">${String(r.id + 1).padStart(2, "0")}</span><div class="record-body"><div class="record-top"><h3 class="record-title">${esc(r.original.title || "未提供标题")}</h3><span class="status-badge ${r.status}">${rowStates[r.status]}</span></div><div class="record-meta"><code>${esc(r.key)}</code><span>${esc(r.source || r.original.doi || r.original.eprint || "按标题检索")}</span></div></div><span class="record-arrow">↗</span></div>`,
+            `<div class="record-row" role="button" tabindex="0" data-row="${r.id}" aria-label="查看 ${esc(r.key)} 的抓取结果"><span class="record-number">${String(r.id + 1).padStart(2, "0")}</span><div class="record-body"><div class="record-top"><h3 class="record-title">${esc(r.original.title || "未提供标题")}</h3><span class="status-badge ${r.status}">${esc(rowLabel(r))}</span></div><div class="record-meta"><code>${esc(r.key)}</code><span>${esc(r.source || r.original.doi || r.original.eprint || "按标题检索")}</span></div>${r.status === "failed" && r.reason ? `<p class="record-reason">${esc(r.reason)}</p>` : ""}</div><span class="record-arrow">↗</span></div>`,
         )
         .join("")
     : '<div class="no-results">没有符合筛选条件的条目</div>';
@@ -406,6 +425,14 @@ function showRow(id) {
   $("detail-dialog").querySelector(".eyebrow").textContent = "SOURCE RESPONSE";
   $("detail-content").innerHTML =
     `<h3 class="detail-title">${esc(row.original.title || row.key)}</h3><div class="detail-meta"><span class="status-badge ${row.status}">${rowStates[row.status]}</span><span>输入键：${esc(row.original_key)}</span>${row.source ? `<span>来源：${esc(row.source)}</span><span>来源键：${esc(row.source_key)}</span>` : ""}</div>${row.source_url ? `<a class="detail-source" href="${esc(row.source_url)}" target="_blank" rel="noopener noreferrer">${esc(row.source_url)} ↗</a>` : ""}${row.raw_bibtex ? `<pre class="source-pre">${esc(row.raw_bibtex)}</pre><div class="detail-meta">抓取时间：${esc(row.retrieved_at)}<br>SHA-256：${esc(row.sha256)}</div>` : `<div class="notice">${esc(row.reason || (row.status === "processing" ? "正在发送请求，可在下方过程日志查看进展。" : "本条目尚未开始抓取。"))}</div>`}<div class="detail-actions">${row.raw_bibtex ? '<button class="button secondary small" id="copy-raw">复制原文</button><button class="button primary small" id="download-raw">下载原文 .bib ↓</button>' : ""}<button class="button secondary small" id="show-row-log">查看本条抓取过程 ↗</button></div>${row.errors?.length ? `<details class="detail-section"><summary>本条目中失败的尝试（${row.errors.length}）</summary><pre>${esc(JSON.stringify(row.errors, null, 2))}</pre></details>` : ""}<details class="detail-section"><summary>输入的原始条目</summary><pre>${esc(row.raw)}</pre></details>${row.notes.length ? `<p class="detail-meta">${row.notes.map(esc).join("<br>")}</p>` : ""}`;
+  if (row.status === "failed" && row.issues?.length) {
+    $("detail-content").insertAdjacentHTML(
+      "beforeend",
+      `<section class="detail-section"><h4>逐来源原因与待选记录</h4>${row.issues.map((issue) =>
+        `<p><strong>${esc(issue.source)} · ${esc(failureLabels[issue.code] || issue.code)}</strong><br>${esc(issue.message)}${issue.downloaded_title ? `<br>来源标题：${esc(issue.downloaded_title)}` : ""}</p>${(issue.candidates || []).map((candidate) => `<pre class="source-pre">${esc(candidate.title)}\n${esc(candidate.id)}\n${esc(candidate.bib_url)}</pre>`).join("")}`
+      ).join("")}<p class="detail-meta">原输入保留。多版本或标题文字差异需要自行确认；完整抓取包内含 retrieval-review.md 清单。</p></section>`,
+    );
+  }
   if (row.raw_bibtex) {
     const titleNote =
       row.title_match === "matched"

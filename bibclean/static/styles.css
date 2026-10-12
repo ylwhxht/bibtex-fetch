@@ -1598,3 +1598,11 @@ pre {
 .export-intro > span {
   color: #7a8a6e !important;
 }
+/* Failed rows expose a readable cause without opening the raw event log. */
+.record-reason {
+  margin: 8px 0 0;
+  color: #795b37;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
