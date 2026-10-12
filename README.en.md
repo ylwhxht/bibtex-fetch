@@ -13,9 +13,10 @@ A local bibliography tool with a Chinese browser interface and a CLI. No languag
 - Live query, request, status, timing, redirect, retry and response logs.
 - Original downloaded BibTeX and HTTP responses retained separately.
 - Optional URL-field removal and 107 predefined venue abbreviations.
+- Opt-in **TPAMI 精简格式** / `--tpami-minimal`: IEEE word abbreviations, first author plus et al. above six authors, optional print details omitted, and online locators retained. [Policy](docs/TPAMI.md)
 - Complete exports by default: unfetched entries retain their original input with explicit provenance; downloaded-only export remains available.
 - Automatic LaTeX compatibility in every merged export: month tokens, accented names, Unicode punctuation and special text characters.
-- Explicit conference and preprint identifiers support narrow entry-type corrections at export. All authors, months, publishers and other source metadata remain intact; every correction is logged.
+- Explicit conference and preprint identifiers support narrow entry-type corrections at export. Normal mode retains all authors, months, publishers and other source metadata; every correction is logged.
 - Preview, ZIP export, citation-key mapping, history, cancellation and retry.
 - Shared retrieval logic between the GUI and CLI.
 
@@ -57,6 +58,7 @@ In the UI, load or paste a UTF-8 `.bib` file, click **读取文章列表**, then
 ```shell
 uv run --frozen --no-dev bibtex-fetch-cli examples/sample.bib -o output/demo
 uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/paper --no-url --abbreviate
+uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/tpami --tpami-minimal
 uv run --frozen --no-dev bibtex-fetch-cli --help
 ```
 
@@ -65,6 +67,8 @@ JSON Lines events go to stdout; the final summary goes to stderr. Exit codes are
 Use `--sources`, `--cache`, `--source-keys`, `--mailto`, and `--data-dir` as needed. Input keys are preserved by default; duplicate keys gain suffixes. Each input remains independent: there is no paper deduplication. Cache reads are off by default.
 
 ## Export behavior
+
+TPAMI minimal mode defaults to off and also works on saved jobs. When enabled, it takes precedence over the ordinary URL and abbreviation switches; disabling it restores those choices. Use the journal's IEEE template for final layout. This deterministic preset is not a bibliographic or submission audit: unknown names and missing fields stay unchanged, with a `manual-review.md` checklist in the ZIP. Exact source text and complete author lists remain available in the original-input and raw-source files.
 
 By default, `merged.bib` contains every input entry in order: successful downloads use source BibTeX; failed or pending entries keep the original input fields and citation keys with an explicit comment. Retained inputs are not counted as successful downloads. Uncheck **保留未抓取条目的输入内容**, or use `--downloaded-only`, to omit unfetched entries. The ZIP always includes `downloaded.bib` (successful downloads only) and `export-summary.json` (counts and per-entry provenance). These options also work on saved jobs without fetching again.
 

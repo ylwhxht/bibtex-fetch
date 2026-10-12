@@ -12,8 +12,9 @@ BibTeX Fetch 是本机运行的开源文献工具，提供中文可视化界面�
 - **过程可见**：实时查看查询词、完整请求地址、状态码、响应耗时、跳转、重试与来源正文。
 - **来源原文留存**：每条下载内容、HTTP 响应、输入文件与过程日志可打包导出。
 - **格式可选**：勾选是否保留 URL、是否使用期刊／会议缩写，即时预览合并结果。
+- **TPAMI 精简格式**：可选 IEEE 规范词语缩写、超过 6 位作者使用首位加 et al.、省略可选会议信息，保留必要出版字段及在线链接。[规则与边界](docs/TPAMI.md)
 - **自动兼容 LaTeX**：合并导出自动处理月份宏、重音字母和普通文本特殊字符；无需额外勾选或手动修补。[处理规则](docs/LATEX.md)
-- **类型兼容**：修正可由现有字段确定的会议／预印本类型，记录每处调整；保留全部作者、月份、出版社及其他来源字段。
+- **类型兼容**：修正可由现有字段确定的会议／预印本类型，记录每处调整；普通模式保留全部作者、月份、出版社及其他来源字段。
 - **任务可恢复**：停止、继续、失败重试、本地历史、条目搜索与日志筛选。
 - **两种入口**：浏览器界面和命令行共用同一套抓取逻辑。
 
@@ -83,11 +84,14 @@ python3 -m venv .venv
 | --- | --- | --- |
 | 保留 URL 字段 | 开启 | 关闭后只从合并文件移除 `url`，保留 DOI、eprint 等字段 |
 | 使用期刊／会议缩写 | 关闭 | 根据内置的 107 个缩写键处理 `journal`、`journaltitle`、`booktitle` |
+| TPAMI 精简格式 | 关闭 | 接管 URL 与缩写选项，按 IEEE 写法精简导出副本；完整包附手动调整清单 |
 | 保留未抓取条目的输入内容 | 开启 | 失败／待处理条目保留输入内容并标记来源，避免缺失引用键；关闭则只导出抓取成功条目 |
 | 保留输入引用键 | 开启 | 延续原来的 `\cite{key}`；重复键添加后缀，并输出映射表 |
 | 使用响应缓存 | 关闭 | 可选复用 24 小时内响应，缓存命中单独记录 |
 
 URL 与缩写选项可用于已有任务，无需重新抓取。缩写直接写为 `booktitle = {CVPR}` 等文本，不依赖外部宏。未匹配的名称保留原样；完整规则见[缩写说明](docs/ABBREVIATIONS.md)。
+
+TPAMI 精简格式也可用于已有任务，原始文献和来源响应不变。请配合期刊的 IEEE 模板使用；缺失字段或未识别名称会列入 `manual-review.md`，供自行精修。[详细规则](docs/TPAMI.md)
 
 默认 `merged.bib` 保留全部输入条目，未抓取条目不会伪装成抓取成功，也不会使用被拒绝的响应。完整包另含仅成功条目的 `downloaded.bib`、记录每条来源与数量的 `export-summary.json`，以及原文、输入、日志、响应、CSV 报告和格式修改记录。各文件含义见[导出内容](docs/USAGE.md#导出文件)。
 
@@ -96,6 +100,7 @@ URL 与缩写选项可用于已有任务，无需重新抓取。缩写直接写�
 ```shell
 uv run --frozen --no-dev bibtex-fetch-cli examples/sample.bib -o output/demo
 uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/paper --no-url --abbreviate
+uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/tpami --tpami-minimal
 uv run --frozen --no-dev bibtex-fetch-cli --help
 ```
 

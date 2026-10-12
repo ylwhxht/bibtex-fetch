@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0 — 可选 TPAMI 精简格式
+
+- 增加默认关闭的 TPAMI 精简开关，GUI 预览、BibTeX／ZIP 下载、API 与 CLI 共用相同规则，已有任务无需重新抓取。
+- 采用独立 IEEE 词语缩写表；超过 6 位作者使用首位加 `and others`，保留机构名称分组；省略可选会议信息和完整出版记录的 URL，保留期刊卷期／月份及在线文献链接。
+- 此模式优先于普通 URL／缩写选项，关闭后恢复普通选择。原始输入与下载原文不变，所有字段编辑可追溯。
+- 完整包附 `manual-review.md`，列出当前规则识别的缺失字段和未知名称，不自动补造。文档列明 IEEE 来源、保留规则和模板边界。
+- 增加选项优先级、关闭恢复、API／ZIP／CLI 一致性、作者阈值、在线链接和实际 IEEEtran 编译回归。
+
 ## 2.0.3 — 导出缩写与条目类型修复
 
 - 缩写表增至 107 项，补充 IV、ITSC、ICPRS、ICVES、RadarConf、VTC、ICONIP、SECON 等会议及 ESWA、TNNLS 等期刊；识别 ICCVW 单数 Workshop、ECCV Workshops 和明确的来源名称变体。
