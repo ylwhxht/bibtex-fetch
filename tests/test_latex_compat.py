@@ -131,7 +131,8 @@ def test_download_to_api_and_zip_export_is_always_compatible(
             assert any(c["action"] == "latex_compatibility" for c in changes["changes"])
 
 
-def test_cli_default_export_uses_same_compatibility(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("minimal", [False, True])
+def test_cli_default_export_uses_same_compatibility(tmp_path, monkeypatch, capsys, minimal):
     import bibclean.__main__ as cli
     import bibclean.runner as runner
 
@@ -149,11 +150,12 @@ def test_cli_default_export_uses_same_compatibility(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bibtex-fetch-cli", str(source), "-o", str(output), "--data-dir", str(tmp_path / "data")],
+        ["bibtex-fetch-cli", str(source), "-o", str(output), "--data-dir", str(tmp_path / "data")]
+        + (["--tpami-minimal"] if minimal else []),
     )
     assert cli.main() == 0
     merged = (output / "merged.bib").read_text(encoding="utf-8")
-    assert merged == format_bibtex(SOURCE)[0].replace("{source,", "{input,")
+    assert merged == format_bibtex(SOURCE, tpami_minimal=minimal)[0].replace("{source,", "{input,")
     assert (output / "entries/0001-input.bib").read_text(encoding="utf-8") == SOURCE
 
 
@@ -194,6 +196,32 @@ def test_preprints_and_conference_chapters_compile_without_bibtex_warnings(
         typed_job(), Store(tmp_path / "store"), include_url=include_url, abbreviate=abbreviate
     )
     assert_compiles(files["merged.bib"], tmp_path, style, 4)
+
+
+def test_tpami_export_compiles_and_reduces_rendered_reference(tmp_path):
+    from test_tpami import example_job
+
+    store = Store(tmp_path / "store")
+    job = example_job()
+    # Include an unfetched input with a protected corporate name and an online locator.
+    row = parse_bib(
+        "@misc{online,title={Synthetic online resource},author={{Research and Development}},"
+        "year=2025,url={https://example.org/data_a}}"
+    )[0]
+    row.update(id=1, status="failed", reason="Synthetic unavailable source")
+    job["rows"].append(row)
+    normal_dir, minimal_dir = tmp_path / "normal", tmp_path / "minimal"
+    normal_dir.mkdir()
+    minimal_dir.mkdir()
+    normal = assert_compiles(export_files(job, store)["merged.bib"], normal_dir, "IEEEtran", 2)
+    minimal = assert_compiles(
+        export_files(job, store, tpami_minimal=True)["merged.bib"], minimal_dir, "IEEEtran", 2
+    )
+    assert "et~al." in minimal
+    assert "Proc. IEEE/CVF Int. Conf. Comput. Vis." in minimal
+    assert "Example Publisher" not in minimal
+    assert "https://example.org/data_a" in minimal
+    assert len(minimal) < len(normal)
 
 
 def assert_compiles(bibtex, tmp_path, style, count):
