@@ -26,7 +26,8 @@ assert same_title("{{A Test Title}}", "a test title.")
 assert not same_title("C++ for Vision", "C for Vision")
 with TestClient(app) as client:
     assert client.get("/api/health").json()["ai"] is False
-    assert client.get("/api/health").json()["title_matching"] == "strict-v1"
+    assert client.get("/api/health").json()["title_matching"] == "strict-v2"
+    assert client.get("/api/health").json()["retrieval_diagnostics"] == "v1"
     assert client.get("/api/jobs").json() == []
     assert client.get("/").status_code == 200
     for asset in ("app.js", "styles.css", "favicon.svg"):
