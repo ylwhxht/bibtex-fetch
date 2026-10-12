@@ -1,0 +1,28 @@
+name: Bug report / 问题反馈
+description: 报告安装、抓取、界面或导出问题
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、Python 版本、工具版本和启动方式
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤与预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: 最小输入示例或错误日志
+      description: 请先移除联系邮箱、个人路径、私人文献和其他不适合公开的信息。勿上传整个数据库。
+      render: text
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
