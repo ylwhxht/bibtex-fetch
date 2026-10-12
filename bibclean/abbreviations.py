@@ -44,6 +44,7 @@ VENUES = [
             "IEEE Computer Society Conference on Computer Vision and Pattern Recognition Workshops",
             "Conference on Computer Vision and Pattern Recognition Workshops",
             "CVPR Workshops",
+            "IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops",
         ],
     ),
     (
@@ -144,6 +145,86 @@ VENUES = [
     ),
     ("ICLR", "ICLR", ["International Conference on Learning Representations"]),
     (
+        "IV",
+        "IV",
+        ["IEEE Intelligent Vehicles Symposium", "Intelligent Vehicles Symposium", "IEEE IV"],
+    ),
+    (
+        "ITSC",
+        "ITSC",
+        [
+            "IEEE International Conference on Intelligent Transportation Systems",
+            "International Conference on Intelligent Transportation Systems",
+            "IEEE Intelligent Transportation Systems Conference",
+        ],
+    ),
+    ("ICPRS", "ICPRS", ["International Conference on Pattern Recognition Systems"]),
+    ("ICVES", "ICVES", ["IEEE International Conference on Vehicular Electronics and Safety"]),
+    ("ICDL", "ICDL", ["IEEE International Conference on Development and Learning"]),
+    (
+        "ICTC",
+        "ICTC",
+        ["International Conference on Information and Communication Technology Convergence"],
+    ),
+    (
+        "ICECET",
+        "ICECET",
+        ["International Conference on Electrical, Computer and Energy Technologies"],
+    ),
+    (
+        "NNICE",
+        "NNICE",
+        ["International Conference on Neural Networks, Information and Communication Engineering"],
+    ),
+    ("INDIN", "INDIN", ["IEEE International Conference on Industrial Informatics"]),
+    ("SECON", "SECON", ["IEEE International Conference on Sensing, Communication, and Networking"]),
+    ("ISAS", "ISAS", ["International Symposium on Autonomous Systems"]),
+    ("CCC", "CCC", ["Chinese Control Conference"]),
+    ("RadarConf", "RadarConf", ["IEEE Radar Conference"]),
+    ("VTCSpring", "VTC-Spring", ["IEEE Vehicular Technology Conference Spring"]),
+    ("VTCFall", "VTC-Fall", ["IEEE Vehicular Technology Conference Fall"]),
+    (
+        "ICONIP",
+        "ICONIP",
+        [
+            "International Conference on Neural Information Processing",
+            "Neural Information Processing",
+        ],
+    ),
+    (
+        "ECCVW",
+        "ECCVW",
+        [
+            "Computer Vision ECCV Workshops",
+            "European Conference on Computer Vision Workshops",
+            "ECCV Workshops",
+        ],
+    ),
+    ("GeMiC", "GeMiC", ["German Microwave Conference"]),
+    ("CRV", "CRV", ["Conference on Computer and Robot Vision"]),
+    (
+        "MCSoC",
+        "MCSoC",
+        ["IEEE International Symposium on Embedded Multicore/Many-core Systems-on-Chip"],
+    ),
+    ("ICCRI", "ICCRI", ["International Conference on Control, Robotics and Informatics"]),
+    ("ROBIO", "ROBIO", ["IEEE International Conference on Robotics and Biomimetics"]),
+    (
+        "VCIP",
+        "VCIP",
+        ["IEEE International Conference on Visual Communications and Image Processing"],
+    ),
+    (
+        "CSCWD",
+        "CSCWD",
+        ["International Conference on Computer Supported Cooperative Work in Design"],
+    ),
+    ("IECON", "IECON", ["Annual Conference of the IEEE Industrial Electronics Society"]),
+    ("ICAUS", "ICAUS", ["International Conference on Autonomous Unmanned Systems"]),
+    ("ECSA", "ECSA", ["International Electronic Conference on Sensors and Applications"]),
+    ("CoRL", "CoRL", ["Conference on Robot Learning"]),
+    ("EuRAD", "EuRAD", ["European Radar Conference"]),
+    (
         "IROS",
         "IROS",
         [
@@ -159,7 +240,14 @@ VENUES = [
             "International Conference on Robotics and Automation",
         ],
     ),
-    ("IJCAI", "IJCAI", ["International Joint Conference on Artificial Intelligence"]),
+    (
+        "IJCAI",
+        "IJCAI",
+        [
+            "International Joint Conference on Artificial Intelligence",
+            "Proceedings of the Thirty-ThirdInternational Joint Conference on Artificial Intelligence",
+        ],
+    ),
     ("PR", "Pattern Recognit.", ["Pattern Recognition"]),
     ("ACCESS", "IEEE Access", []),
     ("RAL", "IEEE RA-L", ["IEEE Robotics and Automation Letters", "IEEE Robot. Autom. Lett."]),
@@ -207,6 +295,9 @@ VENUES = [
             "IEEE/CVF International Conference on Computer Vision Workshops",
             "International Conference on Computer Vision Workshops",
             "ICCV Workshops",
+            "IEEE/CVF International Conference on Computer Vision Workshop",
+            "IEEE International Conference on Computer Vision Workshop",
+            "IEEE/CVF International Conference on Computer Vision (ICCV) Workshops",
         ],
     ),
     (
@@ -247,6 +338,27 @@ VENUES = [
     ("IJAT", "Int. J. Automot. Technol.", ["International Journal of Automotive Technology"]),
     ("ARS", "Adv. Radio Sci.", ["Advances in Radio Science"]),
     ("JCD", "J. Control Decis.", ["Journal of Control and Decision"]),
+    (
+        "TNNLS",
+        "IEEE Trans. Neural Netw. Learn. Syst.",
+        ["IEEE Transactions on Neural Networks and Learning Systems"],
+    ),
+    ("ESWA", "Expert Syst. Appl.", ["Expert Systems with Applications"]),
+    ("NN", "Neural Netw.", ["Neural Networks"]),
+    (
+        "ISPRSARCH",
+        "ISPRS Archives",
+        [
+            "The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences",
+            "Int. Arch. Photogramm. Remote Sens. Spatial Inf. Sci.",
+        ],
+    ),
+    ("AIReview", "Artif. Intell. Rev.", ["Artificial Intelligence Review"]),
+    (
+        "IJPEM",
+        "Int. J. Precis. Eng. Manuf.",
+        ["International Journal of Precision Engineering and Manufacturing"],
+    ),
 ]
 
 CONFERENCES = {
@@ -270,6 +382,35 @@ CONFERENCES = {
     "WACV",
     "EDGE",
     "ICCVW",
+    "IV",
+    "ITSC",
+    "ICPRS",
+    "ICVES",
+    "ICDL",
+    "ICTC",
+    "ICECET",
+    "NNICE",
+    "INDIN",
+    "SECON",
+    "ISAS",
+    "CCC",
+    "RadarConf",
+    "VTCSpring",
+    "VTCFall",
+    "ICONIP",
+    "ECCVW",
+    "GeMiC",
+    "CRV",
+    "MCSoC",
+    "ICCRI",
+    "ROBIO",
+    "VCIP",
+    "CSCWD",
+    "IECON",
+    "ICAUS",
+    "ECSA",
+    "CoRL",
+    "EuRAD",
 }
 BY_KEY = {key.casefold(): (key, short) for key, short, _ in VENUES}
 ALIASES = {
@@ -279,6 +420,9 @@ ALIASES = {
 }
 CONFERENCE_ALIASES = {
     alias: record for alias, record in ALIASES.items() if record[0] in CONFERENCES
+}
+CONFERENCE_ACRONYMS = {
+    key: {normalized(key), normalized(short)} for key, short, _ in VENUES if key in CONFERENCES
 }
 
 
@@ -294,8 +438,21 @@ def abbreviation(value, expression=""):
     # Only these decorations are removed; workshop and joint-event words stay.
     name = re.sub(r"\b(?:19|20)\d{2}\b|\b\d+(?:st|nd|rd|th)\b", " ", name)
     name = re.sub(r"\s+", " ", name).strip()
-    name = re.sub(r"^(?:proceedings(?: of)?(?: the)?|proc(?: of)?(?: the)?)\s+", "", name)
+    name = re.sub(r"^(?:(?:proceedings|procedings|proc)(?: of)?(?: the)?|the)\s+", "", name)
     name = re.sub(r"\s+", " ", name).strip()
+    # Explicit year-bearing conference acronyms; keep the VTC season and year.
+    vtc = re.fullmatch(
+        r"(?:(?:ieee )?vehicular technology conference )?vtc((?:19|20)\d{2}) (spring|fall)", name
+    )
+    if vtc:
+        return ("VTCSpring" if vtc[2] == "spring" else "VTCFall", f"VTC{vtc[1]}-{vtc[2].title()}")
+    name = re.sub(r"\bradarconf(?:\d{2}|(?:19|20)\d{2})\b", "radarconf", name)
+    # SECON's edition adds 'Annual' before IEEE; this is an explicit alias.
+    name = (
+        name.removeprefix("annual ")
+        if name.startswith("annual ieee international conference on sensing ")
+        else name
+    )
     if name in CONFERENCE_ALIASES:
         return CONFERENCE_ALIASES[name]
     for alias, record in CONFERENCE_ALIASES.items():
@@ -304,7 +461,7 @@ def abbreviation(value, expression=""):
         # Remove only this venue's complete acronym tokens, never arbitrary
         # words, so workshops and joint conferences remain distinct.
         candidate = name
-        acronyms = {normalized(record[0]), normalized(record[1])}
+        acronyms = CONFERENCE_ACRONYMS[record[0]]
         while True:
             previous = candidate
             for acronym in acronyms:

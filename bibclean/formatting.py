@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from .abbreviations import abbreviation
-from .bibliography import _blocks, parse_bib
+from .abbreviations import CONFERENCES, abbreviation
+from .bibliography import _blocks, arxiv_of, doi_of, parse_bib
 from .latex_compat import compatible_expression
 
 
@@ -70,9 +70,39 @@ def _fields(raw, start, end):
         yield head.group(1).lower(), field_start, removal_end, value_start, value_end, comments
 
 
+def _preprint_repository(values):
+    """Identify repositories from explicit identifiers, without adding metadata."""
+    doi = doi_of(values.get("doi")) or doi_of(values.get("url"))
+    if re.fullmatch(r"10\.36227/techrxiv\.\d+(?:\.\d+)?(?:(?:/v|\.v)\d+)?", doi):
+        return "TechRxiv"
+    ssrn = re.fullmatch(r"10\.2139/ssrn\.(\d+)", doi)
+    if ssrn:
+        return "SSRN " + ssrn[1]
+    ident = ""
+    if doi.startswith("10.48550/arxiv."):
+        ident = arxiv_of(doi.split("arxiv.", 1)[1])
+    elif values.get("archiveprefix", "").casefold() == "arxiv":
+        ident = arxiv_of(values.get("eprint"))
+    elif re.match(r"https?://(?:export\.)?arxiv\.org/(?:abs|pdf)/", values.get("url", ""), re.I):
+        ident = arxiv_of(values["url"])
+    return "arXiv:" + ident if ident else ""
+
+
 def format_bibtex(raw, *, include_url=True, abbreviate=False):
-    parsed = iter(parse_bib(raw, raw_strings=True)) if abbreviate else None
     blocks = list(_blocks(raw, positions=True))
+    # Parse a semantic view without top-level field comments, which the
+    # upstream parser can mistake for malformed entries. Edits still target
+    # exact spans in the untouched source, including all comments.
+    semantic, entry_count = [], 0
+    for typ, start, end in blocks:
+        if typ == "string":
+            semantic.append(raw[start:end])
+        elif typ not in {"comment", "preamble"}:
+            head = re.match(r"@\s*[\w-]+\s*[{(]([^,]*),", raw[start:end])
+            fields = [f"{name}={raw[a:b]}" for name, _, _, a, b, _ in _fields(raw, start, end)]
+            semantic.append(f"@{typ}{{{head[1]}," + ",\n".join(fields) + "}")
+            entry_count += 1
+    parsed = iter(parse_bib("\n".join(semantic), raw_strings=True)) if entry_count else iter(())
     defined_strings = set()
     for typ, start, end in blocks:
         if typ == "string":
@@ -83,13 +113,40 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
     for typ, start, end in blocks:
         if typ in {"comment", "string", "preamble"}:
             continue
-        values = next(parsed)["original"] if parsed is not None else {}
-        for field, removal_start, removal_end, value_start, value_end, comments in _fields(
-            raw, start, end
+        values = next(parsed)["original"]
+        fields = list(_fields(raw, start, end))
+        expressions = {field: raw[a:b] for field, _, _, a, b, _ in fields}
+        venue = abbreviation(values.get("booktitle", ""), expressions.get("booktitle", ""))
+        repository = _preprint_repository(values)
+        new_type = typ
+        reason = ""
+        if typ in {"inbook", "incollection"} and venue and venue[0] in CONFERENCES:
+            new_type, reason = "inproceedings", "booktitle matches a known conference"
+        elif (
+            typ == "article"
+            and repository
+            and not any(
+                values.get(f) for f in ("journal", "journaltitle", "booktitle", "crossref", "xdata")
+            )
         ):
+            new_type, reason = "misc", "repository identifier present; no journal supplied"
+        if new_type != typ:
+            head = re.match(r"@\s*([\w-]+)", raw[start:end])
+            edits.append((start + head.start(1), start + head.end(1), new_type))
+            changes.append(
+                {
+                    "field": "ENTRYTYPE",
+                    "action": "entry_type",
+                    "before": typ,
+                    "after": new_type,
+                    "reason": reason,
+                }
+            )
+        removed = {"url"} if not include_url else set()
+        for field, removal_start, removal_end, value_start, value_end, comments in fields:
             expression = raw[value_start:value_end]
             replacement = expression
-            if field == "url" and not include_url:
+            if field in removed:
                 edits.append((removal_start, removal_end, comments))
                 changes.append(
                     {"field": field, "action": "remove", "before": expression, "after": ""}

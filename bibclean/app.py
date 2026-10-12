@@ -124,6 +124,7 @@ async def health():
         "ai": False,
         "title_matching": "strict-v1",
         "complete_export": "v1",
+        "export_formatting": "v2",
     }
 
 
