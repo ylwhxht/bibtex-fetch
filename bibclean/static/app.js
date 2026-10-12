@@ -62,6 +62,7 @@ let toastTimer,
   refreshTimer,
   fetching = false;
 let titleMatchingReady = false;
+let completeExportReady = false;
 const emptyRecords = $("records").innerHTML;
 
 function toast(message, error = false) {
@@ -105,13 +106,15 @@ async function checkServerRules() {
   try {
     const health = await api("/api/health");
     titleMatchingReady = health.title_matching === "strict-v1";
+    completeExportReady = health.complete_export === "v1";
     notice.textContent =
-      "当前服务尚未加载新版标题匹配规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。历史结果仍可查看和导出。";
+      "当前服务尚未加载新版标题匹配或完整导出规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。";
   } catch {
     titleMatchingReady = false;
+    completeExportReady = false;
     notice.textContent = "无法连接本地服务。请启动 BibTeX Fetch 后刷新页面。";
   }
-  notice.hidden = titleMatchingReady;
+  notice.hidden = titleMatchingReady && completeExportReady;
   render();
 }
 function timeLabel(value) {
@@ -161,13 +164,17 @@ function render() {
           ? "重试失败条目 ↻"
           : "继续抓取 →";
   $("cancel-button").hidden = !active();
-  $("export-bib").disabled = !counts.success;
-  $("preview-export").disabled = !counts.success;
-  $("export-zip").disabled = !job;
+  const retain = $("include-unfetched").checked;
+  const exportCount = retain ? job?.total || 0 : counts.success;
+  $("export-bib").disabled = !completeExportReady || !exportCount;
+  $("preview-export").disabled = !completeExportReady || !exportCount;
+  $("export-zip").disabled = !completeExportReady || !job;
   $("download-log").disabled = !events.length;
-  $("export-label").textContent = counts.success
-    ? `${counts.success} 条来源 BibTeX 可汇总`
-    : "等待抓取结果";
+  $("export-label").textContent = job
+    ? retain
+      ? `导出 ${exportCount} / ${job.total} 条 · 已抓取 ${counts.success} · 保留输入 ${job.total - counts.success}`
+      : `导出 ${counts.success} / ${job.total} 条 · 将遗漏 ${job.total - counts.success} 条未抓取条目`
+    : "等待导入文献";
   renderRows();
   if (job) {
     const selected = $("log-row").value;
@@ -373,6 +380,7 @@ function exportOptions() {
   return {
     include_url: $("include-url").checked,
     abbreviate: $("abbreviate").checked,
+    include_unfetched: $("include-unfetched").checked,
   };
 }
 function exportURL(format) {
@@ -381,7 +389,7 @@ function exportURL(format) {
 function showExportOptions() {
   const options = exportOptions();
   $("export-hint").textContent =
-    `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "按表缩写期刊／会议名" : "保留来源名称"}。合并导出自动处理 LaTeX 兼容格式，抓取原文另存。`;
+    `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "按表缩写期刊／会议名" : "保留来源名称"}。${options.include_unfetched ? "未抓取条目保留输入内容及引用键，并标记来源；不计为抓取成功。" : "仅导出抓取成功条目，其他引用键不会进入合并文件。"}合并导出自动处理 LaTeX 兼容格式。`;
 }
 function showRow(id) {
   const row = job?.rows.find((r) => r.id === Number(id));
@@ -542,9 +550,10 @@ for (const [id, format] of [
       }[format],
     );
   });
-for (const id of ["include-url", "abbreviate"])
+for (const id of ["include-url", "abbreviate", "include-unfetched"])
   listen(id, "change", () => {
     showExportOptions();
+    render();
     localStorage.setItem(
       "bibtex-fetch-export-options",
       JSON.stringify(exportOptions()),
@@ -571,7 +580,9 @@ listen("preview-export", "click", async () => {
     $("detail-dialog").showModal();
   } finally {
     $("preview-export").textContent = "预览合并结果";
-    $("preview-export").disabled = !job?.counts.success;
+    $("preview-export").disabled = !(
+      $("include-unfetched").checked ? job?.total : job?.counts.success
+    );
   }
 });
 listen("show-abbreviations", "click", async () => {
@@ -664,6 +675,7 @@ window.addEventListener("pagehide", closeStream);
       );
       $("include-url").checked = options.include_url !== false;
       $("abbreviate").checked = options.abbreviate === true;
+      $("include-unfetched").checked = options.include_unfetched !== false;
     } catch {
       /* Ignore obsolete or malformed local display preferences. */
     }

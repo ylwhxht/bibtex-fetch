@@ -41,7 +41,7 @@
           <span class="live-dot"></span>本机运行 · 自动保存
         </div>
         <p>任务和抓取记录保存在本机。检索时向选定来源发送文章标识或标题。</p>
-        <span class="version">BIBTEX FETCH / 2.0.1</span>
+        <span class="version">BIBTEX FETCH / 2.0.2</span>
       </div>
     </aside>
     <main class="main">
@@ -290,9 +290,12 @@
               <button class="text-button" type="button" id="show-abbreviations">
                 查看缩写表 ↗
               </button>
+              <label class="option"
+                ><input type="checkbox" id="include-unfetched" checked />保留未抓取条目的输入内容</label
+              >
             </fieldset>
             <p class="export-hint" id="export-hint">
-              保留 URL · 保留来源名称。合并导出自动处理 LaTeX
+              保留 URL · 保留来源名称 · 保留未抓取条目。合并导出自动处理 LaTeX
               兼容格式，抓取原文另存。
             </p>
             <div class="export-actions">
@@ -363,6 +366,7 @@
             <strong>汇总并选择导出格式。</strong>默认沿用输入引用键，并自动处理
             LaTeX 兼容格式。导出时可取消
             URL，或按缩写表替换期刊／会议名。重复引用键添加后缀，原文另存。
+            默认保留未抓取条目的输入内容并标记来源，避免丢失引用；取消对应勾选后只导出抓取成功条目。
           </li>
         </ol>
         <p>
@@ -374,7 +378,8 @@
         </p>
         <div class="help-callout">
           <strong>导出内容</strong><br /><code>merged.bib</code>
-          合并下载结果<br /><code>entries/</code> 每条未经改动的来源 BibTeX<br /><code
+          完整合并结果<br /><code>downloaded.bib</code> 仅抓取成功条目<br /><code>export-summary.json</code>
+          导出数量与每条内容的来源<br /><code>entries/</code> 每条未经改动的来源 BibTeX<br /><code
             >failed.bib</code
           >
           抓取失败或未处理的输入条目<br /><code>process.jsonl</code>
