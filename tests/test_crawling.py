@@ -327,18 +327,21 @@ def test_runner_export_preserves_order_raw_text_and_failed_inputs(tmp_path):
     events = store.events(job["id"])
     assert [e["seq"] for e in events] == list(range(1, len(events) + 1))
     files = export_files(job, store)
-    assert files["merged.bib"] == rewrite_key(RAW, "one") + "\n\n" + rewrite_key(RAW, "two")
+    assert files["downloaded.bib"] == rewrite_key(RAW, "one") + "\n\n" + rewrite_key(RAW, "two")
     assert files["entries/0001-one.bib"] == RAW
     assert files["original.bib"] == text
     assert parse_bib(files["failed.bib"])[0]["original_key"] == "three"
-    assert [r["original_key"] for r in parse_bib(files["merged.bib"])] == ["one", "two"]
+    assert [r["original_key"] for r in parse_bib(files["merged.bib"])] == ["one", "two", "three"]
+    assert (
+        export_files(job, store, include_unfetched=False)["merged.bib"] == files["downloaded.bib"]
+    )
     with zipfile.ZipFile(io.BytesIO(zip_bytes(files))) as z:
         assert z.read("entries/0001-one.bib").decode("utf-8") == RAW
         assert z.read(f"responses/{fingerprint(RAW)}.txt").decode("utf-8") == RAW
     # Source-key mode keeps raw text intact until a duplicate key requires a suffix.
     job["settings"] = {**SETTINGS, "keep_keys": False}
     files = export_files(job, store)
-    assert files["merged.bib"] == RAW + "\n\n" + rewrite_key(RAW, "SourceKey_2")
+    assert files["downloaded.bib"] == RAW + "\n\n" + rewrite_key(RAW, "SourceKey_2")
 
 
 def test_cancel_retains_completed_entries_and_allows_resume(tmp_path):
@@ -398,10 +401,14 @@ def test_api_import_errors_exports_and_origin(tmp_path, monkeypatch):
         assert response.status_code == 200
         job = response.json()
         assert job["total"] == 1
-        assert client.get(f"/api/jobs/{job['id']}/export").status_code == 409
+        assert client.get(f"/api/jobs/{job['id']}/export").status_code == 200
+        assert (
+            client.get(f"/api/jobs/{job['id']}/export?include_unfetched=false").status_code == 409
+        )
         bundle = client.get(f"/api/jobs/{job['id']}/export?format=zip")
         assert bundle.status_code == 200
         with zipfile.ZipFile(io.BytesIO(bundle.content)) as z:
-            assert z.read("merged.bib") == b""
+            assert parse_bib(z.read("merged.bib").decode())[0]["original_key"] == "SourceKey"
+            assert z.read("downloaded.bib") == b""
             assert z.read("original.bib").decode("utf-8") == RAW
         assert client.get(f"/api/jobs/{job['id']}/events?stream=false").json() == []

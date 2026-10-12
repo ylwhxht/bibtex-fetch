@@ -158,11 +158,12 @@ def test_cli_default_export_uses_same_compatibility(tmp_path, monkeypatch, capsy
 
 
 @pytest.mark.parametrize("style", ["plain", "abbrv", "IEEEtran"])
+@pytest.mark.parametrize("include_fallback", [False, True])
 @pytest.mark.parametrize(
     "include_url,abbreviate", [(True, False), (False, False), (True, True), (False, True)]
 )
 def test_downloaded_export_compiles_with_real_bibtex(
-    downloaded, tmp_path, style, include_url, abbreviate
+    downloaded, tmp_path, style, include_url, abbreviate, include_fallback
 ):
     if not all(shutil.which(name) for name in ("pdflatex", "bibtex", "kpsewhich")):
         pytest.skip("Install a TeX distribution to run the actual compiler regression")
@@ -170,6 +171,14 @@ def test_downloaded_export_compiles_with_real_bibtex(
     if found.returncode:
         pytest.skip(f"The optional {style}.bst is not installed")
     job, store = downloaded
+    if include_fallback:
+        row = parse_bib(
+            "@inproceedings{unfetched_key, title={Original_input & 50%}, "
+            "author={Example, Émile}, year={2022}, month=June, pages={1–5}, "
+            "booktitle={2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}}"
+        )[0]
+        row.update(id=1, status="failed", reason="Synthetic unavailable source")
+        job["rows"].append(row)
     files = export_files(job, store, include_url=include_url, abbreviate=abbreviate)
     (tmp_path / "refs.bib").write_text(files["merged.bib"], encoding="utf-8")
     (tmp_path / "main.tex").write_text(
@@ -194,4 +203,9 @@ def test_downloaded_export_compiles_with_real_bibtex(
         assert 'string name "' not in log, log
     bbl = (tmp_path / "main.bbl").read_bytes().decode("utf-8", errors="strict")
     assert "\\bibitem" in bbl
+    assert bbl.count("\\bibitem") == (2 if include_fallback else 1)
+    assert "undefined" not in (tmp_path / "main.log").read_text(encoding="utf-8")
+    if include_fallback and abbreviate:
+        assert "IROS" in bbl
+        assert "Intelligent Robots" not in bbl
     assert (tmp_path / "main.pdf").is_file()

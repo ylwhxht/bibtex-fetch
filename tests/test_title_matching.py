@@ -110,7 +110,9 @@ def test_identifier_routes_reject_wrong_downloaded_title(tmp_path, field, source
     assert mismatch["sha256"] == fingerprint(WRONG)
     assert not any(e["kind"] == "bibtex" for e in events)
     files = export_files(job, store)
-    assert files["merged.bib"] == ""
+    assert files["downloaded.bib"] == ""
+    assert parse_bib(files["merged.bib"])[0]["original"]["title"] == "A Test Title"
+    assert "A Different Title" not in files["merged.bib"]
     assert files[f"responses/{fingerprint(WRONG)}.txt"] == WRONG
     assert parse_bib(files["failed.bib"])[0]["original_key"] == "input"
 
@@ -133,7 +135,10 @@ def test_same_search_title_does_not_allow_mismatching_or_missing_download_title(
     assert job["rows"][0]["status"] == "failed"
     assert any(e["kind"] == "selection" for e in events)
     assert any(e["kind"] == "title_mismatch" for e in events)
-    assert export_files(job, store)["merged.bib"] == ""
+    files = export_files(job, store)
+    assert files["downloaded.bib"] == ""
+    assert parse_bib(files["merged.bib"])[0]["original"]["title"] == "A Test Title"
+    assert export_files(job, store, include_unfetched=False)["merged.bib"] == ""
 
 
 @pytest.mark.parametrize("stage", ["search", "download"])

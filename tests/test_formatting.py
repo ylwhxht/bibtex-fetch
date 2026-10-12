@@ -117,6 +117,26 @@ def test_url_removal_retains_comments_next_to_field():
         ("Proceedings of the IEEE/CVF International Conference on Computer Vision", "ICCV", "ICCV"),
         ("IEEE International Conference on Computer Vision Workshops", "ICCVW", "ICCVW"),
         ("Computer Vision -- ECCV 2024", "ECCV", "ECCV"),
+        (
+            "ICASSP 2025 - 2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)",
+            "ICASSP",
+            "ICASSP",
+        ),
+        (
+            "2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)",
+            "IROS",
+            "IROS",
+        ),
+        (
+            "ICRA 2024 - 2024 IEEE International Conference on Robotics and Automation (ICRA)",
+            "ICRA",
+            "ICRA",
+        ),
+        (
+            "CVPR 2025 - IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)",
+            "CVPR",
+            "CVPR",
+        ),
         ("Advances in Neural Information Processing Systems 37", "NIPS", "NeurIPS"),
         ("Proceedings of the 32nd ACM International Conference on Multimedia", "ACMMM", "ACM MM"),
         ("ACM Trans. Graph.", "TOG", "ACM TOG"),
@@ -140,6 +160,9 @@ def test_known_venue_variants_follow_supplied_spelling(full, key, short):
         "Pattern Recognition and Image Analysis",
         "Unknown Journal of Vision",
         "IEEE Signal Processing Magazine Special Issue Collection",
+        "ICASSP 2025 - IEEE International Conference on Acoustics, Speech and Signal Processing Workshops (ICASSP)",
+        "IROS and ICRA",
+        "IROS 2025 - International Conference on Intelligent Robots and Systems Workshops (IROS)",
     ],
 )
 def test_unlisted_or_joint_venues_are_not_guessed(name):
