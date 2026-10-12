@@ -106,9 +106,10 @@ async function checkServerRules() {
   try {
     const health = await api("/api/health");
     titleMatchingReady = health.title_matching === "strict-v1";
-    completeExportReady = health.complete_export === "v1";
+    completeExportReady =
+      health.complete_export === "v1" && health.export_formatting === "v2";
     notice.textContent =
-      "当前服务尚未加载新版标题匹配或完整导出规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。";
+      "当前服务尚未加载新版导出或标题匹配规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。";
   } catch {
     titleMatchingReady = false;
     completeExportReady = false;
