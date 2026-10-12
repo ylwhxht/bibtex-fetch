@@ -35,7 +35,7 @@ with TestClient(app) as client:
     assert len(parse_bib(client.get("/api/sample").json()["text"])) == 3
     assert client.get("/api/abbreviations").json()["count"] == 107
     assert client.get("/api/health").json()["complete_export"] == "v1"
-    assert client.get("/api/health").json()["export_formatting"] == "v2"
+    assert client.get("/api/health").json()["export_formatting"] == "v4"
 print("Installed wheel: UI, sample, abbreviations, version and empty local store OK")
 """
 
