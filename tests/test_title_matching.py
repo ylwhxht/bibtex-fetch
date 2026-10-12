@@ -38,6 +38,13 @@ def no_wait(monkeypatch):
         (r"A \& B", "A &amp; B"),
         ("Caf\u00e9", "Cafe\u0301"),
         (r"A $x^2$ Test", r"A $x^2$ Test"),
+        ("Bird's-Eye View", "Bird’s-Eye View"),
+        ("Radar-Camera Fusion", "Radar–Camera Fusion"),
+        ("Radar-Camera Fusion", "Radar‑Camera Fusion"),
+        ("3+ 1D Radar", "3+1d radar"),
+        ("Radar+ RGB Model", "Radar+RGB Model"),
+        (r"${\mathsf{DemoFusion}}$: A Model", "DemoFusion: A Model"),
+        (r"$\mathrm{DemoFusion}$: A Model", "DemoFusion: A Model"),
     ],
 )
 def test_display_only_differences_match(left, right):
@@ -61,6 +68,14 @@ def test_display_only_differences_match(left, right):
         ("Caf\u00e9", "Cafe"),
         ("", ""),
         ("{}", " "),
+        ("Multi-Sensor", "Multisensor"),
+        ("Bird's-Eye-View", "Bird’View"),
+        ("DemoFusion: A Model", "A Model"),
+        ("Radar−Camera", "Radar-Camera"),
+        (r"$\mathsf{X}$ Model", "X Model"),
+        (r"${\mathsf{Model}}^2$", "Model2"),
+        (r"${\mathsf{A+B}}$", "A+B"),
+        (r"$x + y$", r"$x+y$"),
     ],
 )
 def test_meaningful_differences_and_empty_titles_never_match(left, right):

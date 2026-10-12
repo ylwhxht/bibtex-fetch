@@ -51,7 +51,8 @@ def test_package_assets_served_independent_of_current_directory(tmp_path, monkey
     monkeypatch.setattr(api, "JOBS", {})
     with TestClient(api.app) as client:
         assert client.get("/api/health").json()["version"] == __version__
-        assert client.get("/api/health").json()["title_matching"] == "strict-v1"
+        assert client.get("/api/health").json()["title_matching"] == "strict-v2"
+        assert client.get("/api/health").json()["retrieval_diagnostics"] == "v1"
         assert client.get("/api/health").json()["export_formatting"] == "v2"
         assert client.get("/").status_code == 200
         for asset in ("app.js", "styles.css", "favicon.svg"):

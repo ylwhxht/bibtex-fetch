@@ -125,7 +125,7 @@ def test_identifier_download_matches_title_without_rewriting_source_fields(tmp_p
     "query,expected_status,request_count",
     [
         ("Second Title", "success", 2),
-        ("Unknown Title", "failed", 1),
+        ("Unknown Title", "failed", 2),
     ],
 )
 def test_title_search_shows_actual_results_and_selection(
