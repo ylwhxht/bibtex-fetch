@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 
 from .abbreviations import CONFERENCES, abbreviation
+from .arxiv_display import display_field, identifier
 from .bibliography import _blocks, arxiv_of, doi_of, parse_bib
 from .latex_compat import compatible_expression
-from .tpami import compact_author, removable_fields, review_notes, venue_name
 
 
 def _fields(raw, start, end):
@@ -89,7 +89,7 @@ def _preprint_repository(values):
     return "arXiv:" + ident if ident else ""
 
 
-def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=False):
+def format_bibtex(raw, *, include_url=True, abbreviate=False):
     blocks = list(_blocks(raw, positions=True))
     # Parse a semantic view without top-level field comments, which the
     # upstream parser can mistake for malformed entries. Edits still target
@@ -119,13 +119,16 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=Fals
         expressions = {field: raw[a:b] for field, _, _, a, b, _ in fields}
         venue = abbreviation(values.get("booktitle", ""), expressions.get("booktitle", ""))
         repository = _preprint_repository(values)
+        arxiv_id, arxiv_issue = identifier(values)
+        if arxiv_issue:
+            changes.append({"field": "eprint", "action": "manual_review", "reason": arxiv_issue})
         new_type = typ
         reason = ""
         if typ in {"inbook", "incollection"} and venue and venue[0] in CONFERENCES:
             new_type, reason = "inproceedings", "booktitle matches a known conference"
         elif (
             typ == "article"
-            and repository
+            and (repository or arxiv_id)
             and not any(
                 values.get(f) for f in ("journal", "journaltitle", "booktitle", "crossref", "xdata")
             )
@@ -143,19 +146,21 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=Fals
                     "reason": reason,
                 }
             )
-        # The explicit preset owns names and URL policy. Old switches resume
-        # unchanged when it is disabled. Online-only locators must survive.
-        removed = (
-            removable_fields(new_type, values)
-            if tpami_minimal
-            else {"url"}
-            if not include_url
-            else set()
-        )
-        if tpami_minimal:
-            changes.extend(
-                {"field": field, "action": "manual_review", "reason": reason}
-                for field, reason in review_notes(new_type, values)
+        removed = {"url"} if not include_url else set()
+        locator_field = display_field(values, new_type, arxiv_id) if arxiv_id else ""
+        locator = "{{arXiv}:" + arxiv_id + "}"
+        if locator_field and locator_field not in expressions:
+            head = re.match(r"@\s*[\w-]+\s*[{(][^,]*,", raw[start:end])
+            position = start + head.end()
+            edits.append((position, position, f"\n  {locator_field} = {locator},"))
+            changes.append(
+                {
+                    "field": locator_field,
+                    "action": "arxiv_display",
+                    "before": "",
+                    "after": locator,
+                    "reason": "print existing arXiv identifier in classic BibTeX styles",
+                }
             )
         for field, removal_start, removal_end, value_start, value_end, comments in fields:
             expression = raw[value_start:value_end]
@@ -165,36 +170,27 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=Fals
                 changes.append(
                     {
                         "field": field,
-                        "action": "tpami_remove" if tpami_minimal else "remove",
+                        "action": "remove",
                         "before": expression,
                         "after": "",
                     }
                 )
                 continue
-            if tpami_minimal and field == "author":
-                author = compact_author(values.get(field, ""))
-                if author != values.get(field, ""):
-                    replacement = "{" + author + "}"
-                    changes.append(
-                        {
-                            "field": field,
-                            "action": "tpami_authors",
-                            "before": expression,
-                            "after": replacement,
-                            "reason": "more than six authors: first author and others",
-                        }
-                    )
-            if (abbreviate or tpami_minimal) and field in {"journal", "journaltitle", "booktitle"}:
-                lookup = venue_name if tpami_minimal else abbreviation
-                match = lookup(values.get(field, ""), expression)
-                if (
-                    tpami_minimal
-                    and field == "booktitle"
-                    and not values.get("year")
-                    and re.search(r"(?:19|20)\d{2}", values.get(field, ""))
-                ):
-                    # The name may be the only supplied publication date.
-                    match = None
+            if field == locator_field:
+                replacement = (
+                    expression + " # {; " + locator[1:-1] + "}" if values.get(field) else locator
+                )
+                changes.append(
+                    {
+                        "field": field,
+                        "action": "arxiv_display",
+                        "before": expression,
+                        "after": replacement,
+                        "reason": "print existing arXiv identifier in classic BibTeX styles",
+                    }
+                )
+            if abbreviate and field in {"journal", "journaltitle", "booktitle"}:
+                match = abbreviation(values.get(field, ""), expression)
                 if match:
                     macro, short = match
                     replacement = "{" + short + "}"
@@ -202,7 +198,7 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=Fals
                         changes.append(
                             {
                                 "field": field,
-                                "action": "tpami_abbreviate" if tpami_minimal else "abbreviate",
+                                "action": "abbreviate",
                                 "key": macro,
                                 "before": expression,
                                 "after": replacement,

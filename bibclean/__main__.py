@@ -49,11 +49,6 @@ def main():
     parser.add_argument(
         "--abbreviate", action="store_true", help="按内置名称表缩写合并文件的期刊和会议名称"
     )
-    parser.add_argument(
-        "--tpami-minimal",
-        action="store_true",
-        help="TPAMI 精简格式：规范缩写、精简长作者列表与可省略出版信息；优先于 URL／缩写选项",
-    )
     parser.add_argument("--mailto", default="", help="传给 Crossref 的联系邮箱，可选")
     parser.add_argument(
         "--downloaded-only",
@@ -77,7 +72,6 @@ def main():
                 "include_url": not args.no_url,
                 "abbreviate": args.abbreviate,
                 "include_unfetched": not args.downloaded_only,
-                "tpami_minimal": args.tpami_minimal,
             },
         )
     except (OSError, UnicodeError, BibError) as exc:

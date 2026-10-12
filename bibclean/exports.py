@@ -1,4 +1,4 @@
-"""Aggregate downloaded source text; never generate bibliographic fields."""
+"""Aggregate source text with traceable formatting; never invent metadata."""
 
 from __future__ import annotations
 
@@ -25,9 +25,7 @@ def csv_text(headers, rows):
     return "\ufeff" + stream.getvalue()
 
 
-def export_files(
-    job, store, *, include_url=None, abbreviate=None, include_unfetched=None, tpami_minimal=None
-):
+def export_files(job, store, *, include_url=None, abbreviate=None, include_unfetched=None):
     bibs, downloaded, failed, mapping, report, files = [], [], [], [], [], {}
     used = set()
     keep_keys = job["settings"].get("keep_keys", True)
@@ -41,13 +39,8 @@ def export_files(
         "include_unfetched": job["settings"].get("include_unfetched", True)
         if include_unfetched is None
         else include_unfetched,
-        "tpami_minimal": job["settings"].get("tpami_minimal", False)
-        if tpami_minimal is None
-        else tpami_minimal,
     }
-    formatting_options = {
-        name: options[name] for name in ("include_url", "abbreviate", "tpami_minimal")
-    }
+    formatting_options = {name: options[name] for name in ("include_url", "abbreviate")}
     formatting_changes = []
     provenance = []
     for row in job["rows"]:
@@ -174,15 +167,15 @@ def export_files(
                 report,
             ),
             "README.txt": (
-                "merged.bib: downloaded BibTeX plus original unfetched inputs by default, in input order. No fields are generated.\n"
+                "merged.bib: downloaded BibTeX plus original unfetched inputs by default, in input order. No metadata is invented.\n"
                 "Input fallbacks have explicit comments and do not count as successful retrievals. Disable include_unfetched for downloaded entries only.\n"
                 "downloaded.bib: only successfully downloaded entries, with the same export formatting.\n"
                 "export-summary.json: counts and each row's downloaded/input/omitted origin.\n"
                 "entries/: exact UTF-8 source response text, without citation-key changes.\n"
                 "Citation keys may change in merged.bib; see key-map.csv. Duplicate keys gain suffixes.\n"
-                f"Export options: include_url={options['include_url']}, abbreviate={options['abbreviate']}, include_unfetched={options['include_unfetched']}, tpami_minimal={options['tpami_minimal']}.\n"
-                "TPAMI minimal, when enabled, overrides URL and acronym options with IEEE word abbreviations, >6 authors -> first and others, optional print details omitted, online locators retained.\n"
-                "TPAMI minimal is a formatting preset, not publication verification or a guarantee of manuscript compliance. See manual-review.md for unresolved formatting gaps.\n"
+                f"Export options: include_url={options['include_url']}, abbreviate={options['abbreviate']}, include_unfetched={options['include_unfetched']}.\n"
+                "Existing explicit arXiv identifiers are also exposed in howpublished/note for classic BibTeX styles, independently of URL/abbreviation options.\n"
+                "Missing or conflicting arXiv identifiers are not guessed; see formatting-review.md.\n"
                 "Optional formatting removes URL fields and/or replaces known journal/booktitle names with the supplied abbreviations.\n"
                 "Abbreviations are written as braced text values, without external string-macro dependencies.\n"
                 "All merged exports apply LaTeX compatibility: full month tokens, supported Unicode text, and special text characters.\n"
@@ -243,24 +236,21 @@ def export_files(
     if all(row["status"] == "success" for row in job["rows"]):
         lines.append("没有未抓取条目。")
     files["retrieval-review.md"] = "\n".join(lines) + "\n"
-    if options["abbreviate"] and not options["tpami_minimal"]:
+    if options["abbreviate"]:
         files["abbreviations.bib"] = string_definitions()
-    if options["tpami_minimal"]:
-        notes = [c for c in formatting_changes if c["action"] == "manual_review"]
+    notes = [c for c in formatting_changes if c["action"] == "manual_review"]
+    if notes:
         lines = [
-            "# TPAMI 精简格式：需手动调整的项目",
+            "# 导出格式：需手动调整的项目",
             "",
-            "以下仅检查现有字段和缩写表，不做文献真实性核验，也不自动补造数据。",
-            "原始作者及全部来源字段保存在 original.bib、entries/ 中；字段修改见 formatting.json。",
-            "配合期刊提供的 IEEE LaTeX 模板和参考文献样式使用；最终排版由模板决定。",
+            "以下条目的 arXiv 编号缺失或冲突，程序保留现有字段，没有猜测编号。",
+            "原始输入与来源分别保存在 original.bib、entries/ 中；格式调整见 formatting.json。",
             "",
         ]
         for note in notes:
             key = str(note["exported_key"]).replace("`", "'").replace("\n", " ")
             lines.append(f"- 第 {note['row']} 条 `{key}` / {note['field']}：{note['reason']}")
-        if not notes:
-            lines.append("未发现此格式预设能识别的待处理项目；这不等同于完成投稿核验。")
-        files["manual-review.md"] = "\n".join(lines) + "\n"
+        files["formatting-review.md"] = "\n".join(lines) + "\n"
     for digest in {e["sha256"] for e in events if "sha256" in e}:
         response = store.evidence(digest)
         if response:
