@@ -103,8 +103,9 @@ with httpx.Client(base_url=base, timeout=120) as client:
 | `format` | `bib` / `zip` / `log` | 默认 `bib` |
 | `include_url` | `true` / `false` | 是否保留 URL |
 | `abbreviate` | `true` / `false` | 是否使用缩写 |
+| `include_unfetched` | `true` / `false` | 默认 `true`，保留未抓取输入并标记来源；`false` 只导出成功条目 |
 
-未指定格式选项时使用任务中保存的默认值；GUI 创建的任务默认保留 URL、不缩写。显式查询参数只影响本次导出，不修改下载原文。无成功条目时导出 `bib` 返回 409，仍可下载包含失败记录的 ZIP 或日志。
+未指定格式选项时使用任务中保存的默认值；GUI 创建的任务默认保留 URL、不缩写、保留未抓取输入，旧任务同样默认保留未抓取输入。显式查询参数只影响本次导出，不修改下载原文。只有关闭 `include_unfetched` 且无成功条目时，导出 `bib` 才返回 409；仍可下载 ZIP 或日志。`/health` 的 `complete_export: "v1"` 表示支持完整导出。
 
 所有 `merged.bib` 自动执行 [LaTeX 兼容处理](LATEX.md)，不需要额外参数。直接下载 `bib` 与 ZIP 中的合并文件使用同一流程。`formatting.json` 中 `latex_compatibility` 固定为 `true`，`changes` 的 `latex_compatibility` 动作记录具体字段的 `before` / `after`；原始响应下载保持不变。
 

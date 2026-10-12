@@ -6,7 +6,7 @@
 
 ## 匹配方式
 
-先匹配内置键、缩写文本和明确的全称／别名。会议名称还允许列表内的年份、届次、Proceedings 前缀、首尾会议缩写等形式。所有映射都是代码中的确定规则，不做模糊相似度匹配。
+先匹配内置键、缩写文本和明确的全称／别名。会议名称还允许列表内的年份、届次、Proceedings 前缀、首尾会议缩写等形式，包括首尾同时重复的缩写。例如 `ICASSP 2025 - 2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)` 输出 `ICASSP`；`2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)` 输出 `IROS`。所有映射都是代码中的确定规则，不做模糊相似度匹配。
 
 主会与 Workshop 分别匹配。例如 CVPR 和 CVPRW、ICCV 和 ICCVW 不互换。未知、联合会议或额外包含未列出词语的名称保留原样。
 
@@ -26,7 +26,7 @@ journal = {IEEE Trans. Pattern Anal. Mach. Intell.},
 - `TOG` 最终为 `ACM TOG`，同时识别旧值 `ACM Trans. Graph.`。
 - `NIPS` 对应 `NeurIPS`。
 - `TVC` 与 `TVCOMP` 是不同键，两者保留。全称 The Visual Computer / Visual Computer 使用靠后的 `TVCOMP = Vis. Comput.`。
-- 其他重复键去重后共 70 个定义。
+- 原始重复键去重后有 70 个定义；2.0.2 增加 IROS、ICRA 后共 72 个。
 - `TCSVT`、`SPL` 等保持最初提供的缩写拼写。
 
 ## 完整表
@@ -64,6 +64,8 @@ journal = {IEEE Trans. Pattern Anal. Mach. Intell.},
 | `ICASSP` | ICASSP |
 | `ICIP` | ICIP |
 | `ICLR` | ICLR |
+| `IROS` | IROS |
+| `ICRA` | ICRA |
 | `IJCAI` | IJCAI |
 | `PR` | Pattern Recognit. |
 | `ACCESS` | IEEE Access |
