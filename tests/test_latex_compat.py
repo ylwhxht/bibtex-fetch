@@ -218,7 +218,8 @@ def test_tpami_export_compiles_and_reduces_rendered_reference(tmp_path):
         export_files(job, store, tpami_minimal=True)["merged.bib"], minimal_dir, "IEEEtran", 2
     )
     assert "et~al." in minimal
-    assert "Proc. IEEE/CVF Int. Conf. Comput. Vis." in minimal
+    # BibTeX builds wrap .bbl lines at different widths; rendered spaces agree.
+    assert "Proc. IEEE/CVF Int. Conf. Comput. Vis." in " ".join(minimal.split())
     assert "Example Publisher" not in minimal
     assert "https://example.org/data_a" in minimal
     assert len(minimal) < len(normal)
