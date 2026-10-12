@@ -107,7 +107,8 @@ async function checkServerRules() {
     const health = await api("/api/health");
     titleMatchingReady = health.title_matching === "strict-v1";
     completeExportReady =
-      health.complete_export === "v1" && health.export_formatting === "v2";
+      health.complete_export === "v1" && health.export_formatting === "v2" &&
+      health.tpami_minimal === "v1";
     notice.textContent =
       "当前服务尚未加载新版导出或标题匹配规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。";
   } catch {
@@ -382,6 +383,7 @@ function exportOptions() {
     include_url: $("include-url").checked,
     abbreviate: $("abbreviate").checked,
     include_unfetched: $("include-unfetched").checked,
+    tpami_minimal: $("tpami-minimal").checked,
   };
 }
 function exportURL(format) {
@@ -389,8 +391,13 @@ function exportURL(format) {
 }
 function showExportOptions() {
   const options = exportOptions();
+  for (const id of ["include-url", "abbreviate", "show-abbreviations"])
+    $(id).disabled = options.tpami_minimal;
+  const style = options.tpami_minimal
+    ? "TPAMI 精简：规范词语缩写；超过 6 位作者显示首位加 et al.；省略可选会议信息和完整出版记录的 URL，保留在线来源链接。此模式接管 URL 与缩写选项，关闭后恢复原选择。请搭配 IEEE 模板使用；待手动调整项见完整包 manual-review.md。"
+    : `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "按表缩写期刊／会议名" : "保留来源名称"}。`;
   $("export-hint").textContent =
-    `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "按表缩写期刊／会议名" : "保留来源名称"}。${options.include_unfetched ? "未抓取条目保留输入内容及引用键，并标记来源；不计为抓取成功。" : "仅导出抓取成功条目，其他引用键不会进入合并文件。"}合并导出自动处理 LaTeX 兼容格式。`;
+    `${style}${options.include_unfetched ? "未抓取条目保留输入内容及引用键，并标记来源；不计为抓取成功。" : "仅导出抓取成功条目，其他引用键不会进入合并文件。"}合并导出自动处理 LaTeX 兼容格式。`;
 }
 function showRow(id) {
   const row = job?.rows.find((r) => r.id === Number(id));
@@ -551,7 +558,7 @@ for (const [id, format] of [
       }[format],
     );
   });
-for (const id of ["include-url", "abbreviate", "include-unfetched"])
+for (const id of ["include-url", "abbreviate", "include-unfetched", "tpami-minimal"])
   listen(id, "change", () => {
     showExportOptions();
     render();
@@ -677,6 +684,7 @@ window.addEventListener("pagehide", closeStream);
       $("include-url").checked = options.include_url !== false;
       $("abbreviate").checked = options.abbreviate === true;
       $("include-unfetched").checked = options.include_unfetched !== false;
+      $("tpami-minimal").checked = options.tpami_minimal === true;
     } catch {
       /* Ignore obsolete or malformed local display preferences. */
     }

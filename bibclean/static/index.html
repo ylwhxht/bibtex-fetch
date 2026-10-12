@@ -41,7 +41,7 @@
           <span class="live-dot"></span>本机运行 · 自动保存
         </div>
         <p>任务和抓取记录保存在本机。检索时向选定来源发送文章标识或标题。</p>
-        <span class="version">BIBTEX FETCH / 2.0.3</span>
+        <span class="version">BIBTEX FETCH / 2.1.0</span>
       </div>
     </aside>
     <main class="main">
@@ -278,6 +278,9 @@
             <fieldset class="export-options">
               <legend>导出选项</legend>
               <label class="option"
+                ><input type="checkbox" id="tpami-minimal" />TPAMI 精简格式</label
+              >
+              <label class="option"
                 ><input type="checkbox" id="include-url" checked />保留 URL
                 字段</label
               >
@@ -404,6 +407,15 @@
           等月份写为文本值，将重音字母写为带保护括号的 TeX 命令，
           并转义普通文本中的下划线等特殊字符。已有数学公式与 URL／DOI
           标识保持原样。 条目详情、entries/ 与 responses/ 仍提供抓取原文。
+        </p>
+        <p>
+          TPAMI 精简格式默认关闭。开启后使用 IEEE 规范词语缩写，超过 6 位作者显示首位加
+          et al.，省略可选会议信息与完整出版记录的 URL，保留在线文献链接。
+          它优先于普通 URL／缩写选项；关闭后恢复原选择。请配合期刊的 IEEE 模板使用。
+          未识别名称和缺失字段原样保留，在完整包 <code>manual-review.md</code>
+          中列出供你手动调整。原始文献和抓取原文不变。
+          <a href="https://github.com/ylwhxht/bibtex-fetch/blob/main/docs/TPAMI.md"
+            target="_blank" rel="noopener noreferrer">查看精简规则 ↗</a>
         </p>
         <p>
           停止后可继续未完成条目；再次抓取会重试失败条目。旧版本已成功的记录不会自动重新检查标题，需要重新导入建立新任务。来源设置用于新建任务，导出选项会在当前浏览器记住。当前任务和日志保存在本机用户数据目录，实际路径会在启动窗口显示；刷新页面后可从左侧打开历史任务。
