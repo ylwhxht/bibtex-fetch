@@ -116,6 +116,7 @@ def export_files(
                 row.get("source_url", ""),
                 row.get("reason", ""),
                 origin,
+                row.get("failure_code", ""),
             ]
         )
     retained = sum(p["origin"] == "input" for p in provenance)
@@ -168,6 +169,7 @@ def export_files(
                     "url",
                     "error",
                     "export_origin",
+                    "failure_code",
                 ],
                 report,
             ),
@@ -188,6 +190,7 @@ def export_files(
                 "formatting.json: exact field edits in merged.bib. Other files retain their original content.\n"
                 "Each input entry remains independent; there is no paper deduplication.\n"
                 "failed.bib: original unsuccessful/unprocessed entries, with string macros expanded.\n"
+                "retrieval-review.md: unsuccessful entries, source failure reasons and ambiguous candidates for manual follow-up.\n"
                 "original.bib: the full input text.\n"
                 "process.jsonl: actual search, HTTP, redirect, retry, cache and download events.\n"
                 "responses/: decoded UTF-8 HTTP bodies, named by SHA-256 of their UTF-8 bytes.\n"
@@ -200,6 +203,46 @@ def export_files(
             ),
         }
     )
+
+    def display(value):
+        return str(value).replace("`", "'").replace("\r", " ").replace("\n", " ")
+
+    lines = [
+        "# 未抓取条目与手动处理清单",
+        "",
+        "这里只整理本次真实请求的结果；没有修改输入，没有生成或猜测文献字段。",
+        "访问受限、限流及网络错误可稍后重试；同标题多版本或标题文字差异需自行确认。",
+        "修正输入或补充确定的 DOI / arXiv 编号后，可重新导入；原始输入见 original.bib。",
+        "",
+    ]
+    for row in job["rows"]:
+        if row["status"] == "success":
+            continue
+        lines.extend(
+            [
+                f"## {row['id'] + 1}. `{display(row['original_key'])}`",
+                "",
+                f"标题：`{display(row['original'].get('title', ''))}`",
+                "",
+                f"原因：`{display(row.get('reason') or '尚未抓取')}`",
+                "",
+            ]
+        )
+        for issue in row.get("issues", []):
+            lines.append(f"- {display(issue['source'])}：`{display(issue['message'])}`")
+            if issue.get("downloaded_title"):
+                lines.append(f"- 来源标题：`{display(issue['downloaded_title'])}`")
+            if issue.get("url"):
+                lines.append(f"- 请求地址：`{display(issue['url'])}`")
+            for hit in issue.get("candidates", []):
+                lines.append(
+                    f"- 待选记录：`{display(hit['id'])}` / `{display(hit['title'])}` / "
+                    f"`{display(hit['bib_url'])}`"
+                )
+        lines.append("")
+    if all(row["status"] == "success" for row in job["rows"]):
+        lines.append("没有未抓取条目。")
+    files["retrieval-review.md"] = "\n".join(lines) + "\n"
     if options["abbreviate"] and not options["tpami_minimal"]:
         files["abbreviations.bib"] = string_definitions()
     if options["tpami_minimal"]:

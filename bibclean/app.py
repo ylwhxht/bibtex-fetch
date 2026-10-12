@@ -122,7 +122,8 @@ async def health():
         "app": "bibtex-fetch",
         "version": __version__,
         "ai": False,
-        "title_matching": "strict-v1",
+        "title_matching": "strict-v2",
+        "retrieval_diagnostics": "v1",
         "complete_export": "v1",
         "export_formatting": "v2",
         "tpami_minimal": "v1",
@@ -191,7 +192,9 @@ async def start_job(job_id: str):
         raise HTTPException(409, "任务已在运行")
     for row in job["rows"]:
         if row["status"] in {"failed", "processing"}:
-            row.update(status="pending", reason="", errors=[], raw_bibtex=None)
+            row.update(
+                status="pending", reason="", errors=[], issues=[], failure_code="", raw_bibtex=None
+            )
     if not any(row["status"] == "pending" for row in job["rows"]):
         raise HTTPException(409, "全部条目已抓取成功")
     job["state"] = "queued"

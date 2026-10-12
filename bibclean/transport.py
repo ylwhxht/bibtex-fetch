@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -31,12 +32,35 @@ def utcnow():
 
 
 class FetchError(RuntimeError):
-    pass
+    def __init__(self, message, code="invalid_response"):
+        super().__init__(message)
+        self.code = code
+
+
+def reject_html(data):
+    body = data["body"]
+    if "html" not in data.get("content_type", "").lower() and not re.match(
+        r"\s*(?:<!doctype\s+html|<html)", body, re.I
+    ):
+        return
+    blocked = re.search(
+        r"anubis|making sure you.re not a bot|captcha|verify.{0,30}human|"
+        r"challenge-platform|access denied",
+        body,
+        re.I,
+    )
+    raise FetchError(
+        "来源返回 HTML 人机验证或访问限制页面；未绕过验证"
+        if blocked
+        else "来源返回 HTML 页面，不是请求的元数据或 BibTeX",
+        "access_blocked" if blocked else "invalid_response",
+    )
 
 
 class Fetcher:
     def __init__(self, store, emit, *, cache=False, mailto="", client=None):
         self.store, self.emit, self.cache, self.mailto = store, emit, cache, mailto
+        self.cooldowns = {}
         self.client = client or httpx.AsyncClient(
             timeout=httpx.Timeout(20, connect=10),
             follow_redirects=False,
@@ -56,15 +80,25 @@ class Fetcher:
         current = str(httpx.URL(url, params=params))
         cache_key = fingerprint(current + "\n" + accept)
         if self.cache and (cached := self.store.cached(cache_key, time.time())):
-            self.emit(
-                "cache",
-                "命中本地缓存，本次未发送 HTTP 请求",
-                url=current,
-                sha256=cached["sha256"],
-                retrieved_at=cached["retrieved_at"],
-                bytes=len(cached["body"].encode("utf-8")),
-            )
-            return dict(cached, cached=True)
+            try:
+                reject_html(cached)
+            except FetchError:
+                self.emit(
+                    "cache_ignored",
+                    "旧缓存是 HTML 页面，重新请求来源",
+                    url=current,
+                    sha256=cached["sha256"],
+                )
+            else:
+                self.emit(
+                    "cache",
+                    "命中本地缓存，本次未发送 HTTP 请求",
+                    url=current,
+                    sha256=cached["sha256"],
+                    retrieved_at=cached["retrieved_at"],
+                    bytes=len(cached["body"].encode("utf-8")),
+                )
+                return dict(cached, cached=True)
         for redirect in range(5):
             parsed = urlsplit(current)
             if (
@@ -75,8 +109,16 @@ class Fetcher:
             ):
                 raise FetchError("请求或跳转地址不在已支持来源中：" + current)
             host = parsed.hostname
+            cooldown = self.cooldowns.get(host, 0) - time.monotonic()
+            if cooldown > 60:
+                raise FetchError(
+                    f"{host} 仍在限流冷却期，请 {cooldown:.0f} 秒后重试", "rate_limited"
+                )
+            if cooldown > 0:
+                self.emit("wait", "等待来源限流冷却", host=host, seconds=round(cooldown, 2))
+                await asyncio.sleep(cooldown)
             response = None
-            for attempt in range(2):
+            for attempt in range(3):
                 delay = 3.1 if host in {"arxiv.org", "export.arxiv.org"} else 1.1
                 wait = max(0, LAST_REQUEST.get(host, 0) + delay - time.monotonic())
                 if wait > 0.05:
@@ -120,9 +162,7 @@ class Fetcher:
                         # Keep failures/redirects too, so every completed response
                         # can be inspected. Only successful responses enter cache.
                         self.store.put_evidence(
-                            cache_key
-                            if response.status_code == 200
-                            else "response:" + data["sha256"],
+                            None,
                             data,
                             time.time(),
                         )
@@ -136,8 +176,9 @@ class Fetcher:
                             content_type=data["content_type"],
                             sha256=data["sha256"],
                         )
-                        if response.status_code in {429, 500, 502, 503, 504} and attempt == 0:
-                            retry_after = response.headers.get("Retry-After", "2")
+                        if response.status_code in {429, 500, 502, 503, 504}:
+                            default = 5 * (2**attempt) if response.status_code == 429 else 2
+                            retry_after = response.headers.get("Retry-After", str(default))
                             try:
                                 seconds = float(retry_after)
                             except ValueError:
@@ -147,10 +188,16 @@ class Fetcher:
                                         - datetime.now(timezone.utc)
                                     ).total_seconds()
                                 except (ValueError, TypeError):
-                                    seconds = 2
-                            if seconds > 25:
+                                    seconds = default
+                            seconds = max(1, seconds)
+                            if response.status_code == 429:
+                                self.cooldowns[host] = time.monotonic() + seconds
+                            if seconds > 60 or attempt >= (2 if response.status_code == 429 else 1):
                                 raise FetchError(
-                                    f"HTTP {response.status_code}，来源要求 {int(seconds)} 秒后再试"
+                                    f"{host} HTTP {response.status_code}，请 {seconds:.0f} 秒后重试",
+                                    "rate_limited"
+                                    if response.status_code == 429
+                                    else "source_unavailable",
                                 )
                             self.emit(
                                 "retry",
@@ -169,12 +216,14 @@ class Fetcher:
                         elapsed_ms=round((time.monotonic() - started) * 1000),
                     )
                     if attempt:
-                        raise FetchError(f"{host} 连接失败：{type(exc).__name__}") from exc
+                        raise FetchError(
+                            f"{host} 连接失败：{type(exc).__name__}", "network_error"
+                        ) from exc
                     self.emit("retry", "2 秒后重试连接", url=current, seconds=2)
                     await asyncio.sleep(2)
                 except (httpx.HTTPError, UnicodeError) as exc:
                     self.emit("network_error", str(exc), url=current)
-                    raise FetchError(str(exc)) from exc
+                    raise FetchError(str(exc), "network_error") from exc
             if response is None:
                 raise FetchError("没有收到响应")
             if response.status_code in {301, 302, 303, 307, 308}:
@@ -186,7 +235,11 @@ class Fetcher:
                 current = target
                 continue
             if response.status_code != 200:
-                raise FetchError(f"{host} HTTP {response.status_code}")
+                code = "not_found" if response.status_code == 404 else "source_unavailable"
+                if response.status_code in {401, 403}:
+                    code = "access_blocked"
+                raise FetchError(f"{host} HTTP {response.status_code}", code)
+            reject_html(data)
             self.store.put_evidence(cache_key, data, time.time())
             return data
         raise FetchError("来源跳转次数超过 5 次")

@@ -42,9 +42,25 @@ def normalized_title(value):
     intentionally stricter than the normalization used for venue abbreviations.
     """
     value = unicodedata.normalize("NFC", title_text(value))
+    # Publishers sometimes put a plain method name in a math font. Only unwrap
+    # a complete font-wrapped word, never a variable, expression or script.
+    value = re.sub(
+        r"\$\{?\\(?:mathsf|mathrm|mathbf|mathtt)\{([A-Za-z][A-Za-z0-9]{2,})\}\}?\$",
+        r"\1",
+        value,
+    )
     # Case is significant inside mathematical expressions (e.g. X versus x).
     parts = re.split(r"(\$\$.*?\$\$|\$[^$]*\$|\\\(.*?\\\)|\\\[.*?\\\])", value)
-    value = "".join(part if i % 2 else part.casefold() for i, part in enumerate(parts))
+
+    def prose(part):
+        part = part.translate(str.maketrans("‘’“”", "''\"\""))
+        # Retain the hyphen and plus themselves. Do not turn A-B into AB, or
+        # change a mathematical minus sign into a hyphen.
+        part = re.sub(r"(?<=\w)[‐‑–](?=\w)", "-", part)
+        part = re.sub(r"\s*\+\s*", "+", part)
+        return part.casefold()
+
+    value = "".join(part if i % 2 else prose(part) for i, part in enumerate(parts))
     return value.removesuffix(".").strip()
 
 

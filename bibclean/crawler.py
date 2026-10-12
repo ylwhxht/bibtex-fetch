@@ -17,7 +17,19 @@ from .bibliography import (
     parse_bib,
 )
 from .matching import normalized_title, same_title, title_text
-from .transport import FetchError
+from .transport import FetchError, reject_html
+
+FAILURE_LABELS = {
+    "ambiguous_title": "存在多个同标题版本，需要选择记录",
+    "title_mismatch": "下载记录与输入标题存在差异，需要人工确认",
+    "rate_limited": "来源限流，重试后仍未恢复",
+    "access_blocked": "来源要求人机验证或限制访问",
+    "network_error": "网络连接失败",
+    "source_unavailable": "来源暂时不可用",
+    "invalid_response": "来源响应格式异常",
+    "not_found": "当前来源未检索到标题一致的可用记录",
+    "missing_identifier": "输入缺少可检索的标题或标识符",
+}
 
 
 def rewrite_key(raw, key):
@@ -36,6 +48,13 @@ class Crawler:
     def __init__(self, fetcher, emit, settings):
         self.fetcher, self.emit, self.settings = fetcher, emit, settings
         self.sources = settings["sources"]
+        self.issues = []
+        self.blocked_searches = {}
+
+    def issue(self, code, source, message, **details):
+        item = {"code": code, "source": source, "message": message, **details}
+        self.issues.append(item)
+        return item
 
     def select(self, hits, title, source):
         self.emit(
@@ -43,6 +62,7 @@ class Crawler:
         )
         matches = [(i, h) for i, h in enumerate(hits) if same_title(h["title"], title)]
         if not matches:
+            self.issue("not_found", source, "本次检索没有标题一致的候选")
             self.emit(
                 "no_title_match",
                 "没有标题一致的候选，跳过本来源；不使用首条或相似结果",
@@ -53,6 +73,12 @@ class Crawler:
             )
             return None
         if len({h["bib_url"] for _, h in matches}) > 1:
+            self.issue(
+                "ambiguous_title",
+                source,
+                FAILURE_LABELS["ambiguous_title"],
+                candidates=[h for _, h in matches],
+            )
             self.emit(
                 "ambiguous_title",
                 "存在多个标题一致的不同记录，无法仅凭标题选定；跳过本来源",
@@ -76,26 +102,36 @@ class Crawler:
 
     async def crossref_search(self, title):
         query = title_text(title)[:600]
-        self.emit("search", "按标题检索 Crossref", source="Crossref", query=query)
-        result = await self.fetcher.get(
-            "https://api.crossref.org/works",
-            {"query.bibliographic": query, "rows": 5},
-        )
-        items = json.loads(result["body"])["message"]["items"]
-        hits = []
-        for item in items:
-            doi = doi_of(item.get("DOI"))
-            if doi:
-                hits.append(
-                    {
-                        "title": str((item.get("title") or [""])[0]),
-                        "id": doi,
-                        "bib_url": "https://api.crossref.org/works/"
-                        + quote(doi, safe="")
-                        + "/transform/application/x-bibtex",
-                    }
-                )
-        return self.select(hits, title, "Crossref")
+        for count in (5, 25):
+            self.emit(
+                "search" if count == 5 else "search_fallback",
+                f"按标题检索 Crossref，读取前 {count} 条候选",
+                source="Crossref",
+                query=query,
+            )
+            result = await self.fetcher.get(
+                "https://api.crossref.org/works",
+                {"query.bibliographic": query, "rows": count},
+            )
+            reject_html(result)
+            items = json.loads(result["body"])["message"]["items"]
+            hits = []
+            for item in items:
+                doi = doi_of(item.get("DOI"))
+                if doi:
+                    hits.append(
+                        {
+                            "title": str((item.get("title") or [""])[0]),
+                            "id": doi,
+                            "bib_url": "https://api.crossref.org/works/"
+                            + quote(doi, safe="")
+                            + "/transform/application/x-bibtex",
+                        }
+                    )
+            choice = self.select(hits, title, "Crossref")
+            if choice or any(same_title(h["title"], title) for h in hits):
+                return choice
+        return None
 
     async def dblp_search(self, title):
         query = title_text(title)[:600]
@@ -104,6 +140,7 @@ class Crawler:
             "https://dblp.org/search/publ/api",
             {"q": query, "format": "json", "h": 5},
         )
+        reject_html(result)
         records = json.loads(result["body"])["result"]["hits"].get("hit", [])
         records = [records] if isinstance(records, dict) else records
         hits = []
@@ -121,13 +158,35 @@ class Crawler:
         return self.select(hits, title, "DBLP")
 
     async def arxiv_search(self, title):
-        query = 'ti:"' + re.sub(r"[^\w\s-]", " ", title_text(title))[:600] + '"'
-        self.emit("search", "按标题检索 arXiv", source="arXiv", query=query)
+        text = title_text(title)[:600]
+        phrase = 'ti:"' + re.sub(r"[^\w\s-]", " ", text) + '"'
+        # A phrase query is sensitive to punctuation/tokenization in arXiv's
+        # index. Broaden retrieval with existing title words; selection still
+        # requires the complete title, and the downloaded BibTeX is checked too.
+        words = list(dict.fromkeys(re.findall(r"[^\W_]+", text.casefold())))
+        stop = {"a", "an", "the", "and", "or", "of", "for", "in", "on", "to", "with", "via"}
+        words = sorted((w for w in words if len(w) > 2 and w not in stop), key=len, reverse=True)
+        keyword = " AND ".join('ti:"' + w + '"' for w in words[:6])
+        for index, query in enumerate(dict.fromkeys(q for q in (phrase, keyword) if q)):
+            self.emit(
+                "search" if index == 0 else "search_fallback",
+                "按完整标题检索 arXiv" if index == 0 else "用标题关键词组合再次检索 arXiv",
+                source="arXiv",
+                query=query,
+            )
+            hits = await self.arxiv_hits(query, 5 if index == 0 else 25)
+            choice = self.select(hits, title, "arXiv")
+            if choice or any(same_title(h["title"], title) for h in hits):
+                return choice
+        return None
+
+    async def arxiv_hits(self, query, count):
         result = await self.fetcher.get(
             "https://export.arxiv.org/api/query",
-            {"search_query": query, "max_results": 5},
+            {"search_query": query, "max_results": count},
             "application/atom+xml",
         )
+        reject_html(result)
         ns = {"a": "http://www.w3.org/2005/Atom"}
         root = ET.fromstring(result["body"])
         hits = []
@@ -144,9 +203,10 @@ class Crawler:
                         "bib_url": "https://arxiv.org/bibtex/" + quote(ident, safe="/"),
                     }
                 )
-        return self.select(hits, title, "arXiv")
+        return hits
 
     async def crawl(self, entry):
+        self.issues = []
         errors, attempted = [], set()
         doi, arxiv = input_ids(entry)
         title = entry.get("title", "")
@@ -196,7 +256,17 @@ class Crawler:
                         sha256=result["sha256"],
                     )
                     if not matched:
-                        raise FetchError("下载的 BibTeX 标题缺失或与输入不一致（未匹配）")
+                        self.issue(
+                            "title_mismatch",
+                            source,
+                            FAILURE_LABELS["title_mismatch"],
+                            url=result["url"],
+                            input_title=title,
+                            downloaded_title=source_title,
+                        )
+                        raise FetchError(
+                            "下载的 BibTeX 标题缺失或与输入不一致（未匹配）", "title_mismatch"
+                        )
                     title_match = "matched"
                 else:
                     title_match = "not_checked"
@@ -229,9 +299,15 @@ class Crawler:
                     "source_title": source_title,
                     "title_match": title_match,
                     "errors": errors,
+                    "issues": self.issues,
+                    "reason": "",
+                    "failure_code": "",
                 }
             except (FetchError, BibError, ValueError) as exc:
-                errors.append({"source": source, "url": url, "message": str(exc)})
+                code = getattr(exc, "code", "invalid_response")
+                errors.append({"source": source, "url": url, "message": str(exc), "code": code})
+                if code != "title_mismatch":
+                    self.issue(code, source, str(exc), url=url)
                 self.emit(
                     "source_error", "抓取失败，尝试下一来源", source=source, url=url, error=str(exc)
                 )
@@ -279,21 +355,47 @@ class Crawler:
             ]:
                 if key not in self.sources:
                     continue
+                if source in self.blocked_searches:
+                    message = self.blocked_searches[source]
+                    self.issue("access_blocked", source, message)
+                    self.emit(
+                        "source_unavailable",
+                        "本轮已遇到访问限制，跳过该来源的重复检索",
+                        source=source,
+                        error=message,
+                        code="access_blocked",
+                    )
+                    continue
                 try:
                     hit = await search(title)
                     if hit and (result := await download(source, hit["bib_url"])):
                         return result
                 except (FetchError, ValueError, KeyError, TypeError, ET.ParseError) as exc:
-                    errors.append({"source": source, "message": str(exc)})
+                    code = getattr(exc, "code", "invalid_response")
+                    errors.append({"source": source, "message": str(exc), "code": code})
+                    self.issue(code, source, str(exc))
+                    if code == "access_blocked":
+                        self.blocked_searches[source] = str(exc)
                     self.emit(
                         "source_error", "检索失败，尝试下一来源", source=source, error=str(exc)
                     )
-        message = (
-            "未匹配：没有抓取到标题一致且可解析的原站 BibTeX"
-            if str(title).strip()
-            else "没有抓取到可解析的原站 BibTeX"
-            if doi or arxiv or title
-            else "条目缺少可检索的 DOI、arXiv 编号或标题"
+        if not self.issues:
+            code = "not_found" if doi or arxiv or title else "missing_identifier"
+            self.issue(code, "输入", FAILURE_LABELS[code])
+        codes = {item["code"] for item in self.issues}
+        code = next(key for key in FAILURE_LABELS if key in codes)
+        summaries = list(
+            dict.fromkeys(
+                f"{item['source']}：{FAILURE_LABELS[item['code']]}" for item in self.issues
+            )
         )
-        self.emit("failure", message, errors=errors)
-        return {"status": "failed", "reason": message, "errors": errors, "raw_bibtex": None}
+        message = "；".join(summaries)
+        self.emit("failure", message, errors=errors, issues=self.issues, failure_code=code)
+        return {
+            "status": "failed",
+            "reason": message,
+            "errors": errors,
+            "issues": self.issues,
+            "failure_code": code,
+            "raw_bibtex": None,
+        }

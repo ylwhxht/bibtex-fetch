@@ -48,7 +48,7 @@ class Store:
                 "INSERT OR IGNORE INTO evidence VALUES (?, ?)",
                 (payload["sha256"], json.dumps(payload, ensure_ascii=False)),
             )
-            if payload.get("status") == 200:
+            if key is not None and payload.get("status") == 200:
                 conn.execute(
                     "INSERT OR REPLACE INTO crawl_cache VALUES (?, ?, ?)",
                     (key, json.dumps(payload, ensure_ascii=False), now),

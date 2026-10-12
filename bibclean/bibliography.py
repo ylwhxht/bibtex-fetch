@@ -72,6 +72,21 @@ def input_ids(entry):
     arxiv = arxiv_of(entry.get("eprint")) or arxiv_of(entry.get("url"))
     if not arxiv and doi.startswith("10.48550/arxiv."):
         arxiv = arxiv_of(doi.split("arxiv.", 1)[1])
+    if not arxiv:
+        # Some importers store a labelled arXiv ID in the journal/note field.
+        # Multiple identifiers are ambiguous; never guess one or rewrite input.
+        identifiers = {
+            ident
+            for field in ("journal", "note")
+            for match in re.finditer(
+                r"\barxiv\s*:\s*((?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?/\d{7})(?:v\d+)?)(?![\w./])",
+                str(entry.get(field, "")),
+                re.I,
+            )
+            if (ident := arxiv_of(match[1]))
+        }
+        if len(identifiers) == 1:
+            arxiv = identifiers.pop()
     return doi, arxiv
 
 
