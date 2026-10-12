@@ -143,6 +143,22 @@ VENUES = [
         ],
     ),
     ("ICLR", "ICLR", ["International Conference on Learning Representations"]),
+    (
+        "IROS",
+        "IROS",
+        [
+            "IEEE/RSJ International Conference on Intelligent Robots and Systems",
+            "International Conference on Intelligent Robots and Systems",
+        ],
+    ),
+    (
+        "ICRA",
+        "ICRA",
+        [
+            "IEEE International Conference on Robotics and Automation",
+            "International Conference on Robotics and Automation",
+        ],
+    ),
     ("IJCAI", "IJCAI", ["International Joint Conference on Artificial Intelligence"]),
     ("PR", "Pattern Recognit.", ["Pattern Recognition"]),
     ("ACCESS", "IEEE Access", []),
@@ -248,6 +264,8 @@ CONFERENCES = {
     "ICASSP",
     "ICIP",
     "ICLR",
+    "IROS",
+    "ICRA",
     "IJCAI",
     "WACV",
     "EDGE",
@@ -281,8 +299,19 @@ def abbreviation(value, expression=""):
     if name in CONFERENCE_ALIASES:
         return CONFERENCE_ALIASES[name]
     for alias, record in CONFERENCE_ALIASES.items():
-        suffixes = {normalized(record[0]), normalized(record[1])}
-        if any(name == f"{alias} {suffix}" or name == f"{suffix} {alias}" for suffix in suffixes):
+        # Crossref can repeat an acronym at BOTH ends, e.g.
+        # ICASSP 2025 - 2025 IEEE ... Processing (ICASSP).
+        # Remove only this venue's complete acronym tokens, never arbitrary
+        # words, so workshops and joint conferences remain distinct.
+        candidate = name
+        acronyms = {normalized(record[0]), normalized(record[1])}
+        while True:
+            previous = candidate
+            for acronym in acronyms:
+                candidate = candidate.removeprefix(acronym + " ").removesuffix(" " + acronym)
+            if candidate == previous:
+                break
+        if candidate == alias:
             return record
     if re.fullmatch(r"advances in neural information processing systems \d+", name):
         return BY_KEY["nips"]

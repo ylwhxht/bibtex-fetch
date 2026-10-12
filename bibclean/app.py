@@ -123,6 +123,7 @@ async def health():
         "version": __version__,
         "ai": False,
         "title_matching": "strict-v1",
+        "complete_export": "v1",
     }
 
 
@@ -266,13 +267,29 @@ async def export_job(
     format: str = "bib",
     include_url: bool | None = None,
     abbreviate: bool | None = None,
+    include_unfetched: bool | None = None,
 ):
     job = get_job(job_id)
     if format not in {"bib", "zip", "log"}:
         raise HTTPException(422, "支持 bib、zip 或 log")
-    if format == "bib" and not any(row["status"] == "success" for row in job["rows"]):
+    retain = (
+        job["settings"].get("include_unfetched", True)
+        if include_unfetched is None
+        else include_unfetched
+    )
+    if (
+        format == "bib"
+        and not retain
+        and not any(row["status"] == "success" for row in job["rows"])
+    ):
         raise HTTPException(409, "暂时没有成功抓取的 BibTeX")
-    files = export_files(job, STORE, include_url=include_url, abbreviate=abbreviate)
+    files = export_files(
+        job,
+        STORE,
+        include_url=include_url,
+        abbreviate=abbreviate,
+        include_unfetched=include_unfetched,
+    )
     name, media, data = {
         "bib": ("merged.bib", "application/x-bibtex", files["merged.bib"]),
         "log": ("process.jsonl", "application/x-ndjson", files["process.jsonl"]),

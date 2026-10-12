@@ -51,6 +51,11 @@ def main():
     )
     parser.add_argument("--mailto", default="", help="传给 Crossref 的联系邮箱，可选")
     parser.add_argument(
+        "--downloaded-only",
+        action="store_true",
+        help="合并文件只包含抓取成功条目；默认保留未抓取条目的输入内容并标记来源",
+    )
+    parser.add_argument(
         "--data-dir", type=Path, default=data_directory(), help="本地任务和缓存目录"
     )
     args = parser.parse_args()
@@ -66,6 +71,7 @@ def main():
                 "keep_keys": not args.source_keys,
                 "include_url": not args.no_url,
                 "abbreviate": args.abbreviate,
+                "include_unfetched": not args.downloaded_only,
             },
         )
     except (OSError, UnicodeError, BibError) as exc:

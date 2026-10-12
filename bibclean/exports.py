@@ -25,8 +25,8 @@ def csv_text(headers, rows):
     return "\ufeff" + stream.getvalue()
 
 
-def export_files(job, store, *, include_url=None, abbreviate=None):
-    bibs, failed, mapping, report, files = [], [], [], [], {}
+def export_files(job, store, *, include_url=None, abbreviate=None, include_unfetched=None):
+    bibs, downloaded, failed, mapping, report, files = [], [], [], [], [], {}
     used = set()
     keep_keys = job["settings"].get("keep_keys", True)
     options = {
@@ -36,28 +36,67 @@ def export_files(job, store, *, include_url=None, abbreviate=None):
         "abbreviate": job["settings"].get("abbreviate", False)
         if abbreviate is None
         else abbreviate,
+        "include_unfetched": job["settings"].get("include_unfetched", True)
+        if include_unfetched is None
+        else include_unfetched,
     }
+    formatting_options = {name: options[name] for name in ("include_url", "abbreviate")}
     formatting_changes = []
+    provenance = []
     for row in job["rows"]:
         key = ""
-        if row["status"] == "success":
-            raw = row["raw_bibtex"]
-            base = row["key"] if keep_keys else row["source_key"]
+        success = row["status"] == "success"
+        origin = "downloaded" if success else "input" if options["include_unfetched"] else "omitted"
+        if not success:
+            failed.append(dict(row["original"], ID=row["key"]))
+        if origin != "omitted":
+            base = row["key"] if keep_keys or not success else row["source_key"]
             key, count = base, 2
             while key.casefold() in used:
                 key, count = f"{base}_{count}", count + 1
             used.add(key.casefold())
-            formatted, changes = format_bibtex(raw, **options)
-            bibs.append(formatted if key == row["source_key"] else rewrite_key(formatted, key))
-            formatting_changes.extend(
-                {"row": row["id"] + 1, "exported_key": key, **change} for change in changes
-            )
+        if success:
+            raw = row["raw_bibtex"]
             safe_name = re.sub(r"[^\w.-]", "_", row["key"])[:90]
             files[f"entries/{row['id'] + 1:04d}-{safe_name}.bib"] = raw
-        else:
-            failed.append(dict(row["original"], ID=row["key"]))
+        elif origin == "input":
+            # Input strings were expanded on import; keep every input field.
+            # Never substitute a rejected response or fabricate missing data.
+            raw = render_entries([dict(row["original"], ID=key)])
+        if origin != "omitted":
+            formatted, changes = format_bibtex(raw, **formatting_options)
+            if success and key != row["source_key"]:
+                formatted = rewrite_key(formatted, key)
+            if success:
+                downloaded.append(formatted)
+            else:
+                formatted = (
+                    f"% BibTeX Fetch: original input retained; not downloaded (row {row['id'] + 1}).\n"
+                    + formatted
+                )
+            bibs.append(formatted)
+            formatting_changes.extend(
+                {"row": row["id"] + 1, "exported_key": key, "origin": origin, **change}
+                for change in changes
+            )
+        provenance.append(
+            {
+                "row": row["id"] + 1,
+                "input_key": row["original_key"],
+                "exported_key": key,
+                "retrieval_status": row["status"],
+                "origin": origin,
+            }
+        )
         mapping.append(
-            [row["id"] + 1, row["original_key"], row.get("source_key", ""), key, row["status"]]
+            [
+                row["id"] + 1,
+                row["original_key"],
+                row.get("source_key", ""),
+                key,
+                row["status"],
+                origin,
+            ]
         )
         report.append(
             [
@@ -69,12 +108,21 @@ def export_files(job, store, *, include_url=None, abbreviate=None):
                 row.get("source", ""),
                 row.get("source_url", ""),
                 row.get("reason", ""),
+                origin,
             ]
+        )
+    retained = sum(p["origin"] == "input" for p in provenance)
+    merged = "\n\n".join(bibs)
+    if retained:
+        merged = (
+            f"% BibTeX Fetch: {len(bibs)} entries; {len(downloaded)} downloaded; "
+            f"{retained} retained from input (not downloaded).\n\n" + merged
         )
     events = store.events(job["id"])
     files.update(
         {
-            "merged.bib": "\n\n".join(bibs),
+            "merged.bib": merged,
+            "downloaded.bib": "\n\n".join(downloaded),
             "failed.bib": render_entries(failed),
             "original.bib": job["original_text"],
             "process.jsonl": "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events),
@@ -86,8 +134,21 @@ def export_files(job, store, *, include_url=None, abbreviate=None):
                 ensure_ascii=False,
                 indent=2,
             ),
+            "export-summary.json": json.dumps(
+                {
+                    "input_count": len(job["rows"]),
+                    "exported_count": len(bibs),
+                    "downloaded_count": len(downloaded),
+                    "retained_input_count": retained,
+                    "omitted_count": len(job["rows"]) - len(bibs),
+                    "rows": provenance,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
             "key-map.csv": csv_text(
-                ["row", "input_key", "source_key", "exported_key", "status"], mapping
+                ["row", "input_key", "source_key", "exported_key", "status", "export_origin"],
+                mapping,
             ),
             "report.csv": csv_text(
                 [
@@ -99,14 +160,18 @@ def export_files(job, store, *, include_url=None, abbreviate=None):
                     "source",
                     "url",
                     "error",
+                    "export_origin",
                 ],
                 report,
             ),
             "README.txt": (
-                "merged.bib: successfully downloaded BibTeX, in input order. No fields are generated.\n"
+                "merged.bib: downloaded BibTeX plus original unfetched inputs by default, in input order. No fields are generated.\n"
+                "Input fallbacks have explicit comments and do not count as successful retrievals. Disable include_unfetched for downloaded entries only.\n"
+                "downloaded.bib: only successfully downloaded entries, with the same export formatting.\n"
+                "export-summary.json: counts and each row's downloaded/input/omitted origin.\n"
                 "entries/: exact UTF-8 source response text, without citation-key changes.\n"
                 "Citation keys may change in merged.bib; see key-map.csv. Duplicate keys gain suffixes.\n"
-                f"Export options: include_url={options['include_url']}, abbreviate={options['abbreviate']}.\n"
+                f"Export options: include_url={options['include_url']}, abbreviate={options['abbreviate']}, include_unfetched={options['include_unfetched']}.\n"
                 "Optional formatting removes URL fields and/or replaces known journal/booktitle names with the supplied abbreviations.\n"
                 "Abbreviations are written as braced text values, without external string-macro dependencies.\n"
                 "All merged exports apply LaTeX compatibility: full month tokens, supported Unicode text, and special text characters.\n"
@@ -118,7 +183,7 @@ def export_files(job, store, *, include_url=None, abbreviate=None):
                 "process.jsonl: actual search, HTTP, redirect, retry, cache and download events.\n"
                 "responses/: decoded UTF-8 HTTP bodies, named by SHA-256 of their UTF-8 bytes.\n"
                 "Current retrieval rule: direct identifier first; title search requires a unique same-title record. No first-result fallback.\n"
-                "When an input title is supplied, downloaded BibTeX must match it before acceptance.\n"
+                "When an input title is supplied, downloaded BibTeX must match it before acceptance. Rejected responses are never substituted for input fallbacks.\n"
                 "Rows without an input title use direct identifiers/record URLs and log title_unavailable.\n"
                 "Older saved successes are not retroactively title-checked; see results.json and process.jsonl.\n"
                 "No authenticity evaluation, scoring, manual approval, or AI generation is performed.\n"
