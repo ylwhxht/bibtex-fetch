@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 
-from bibclean.abbreviations import abbreviation, string_definitions
+from bibclean.abbreviations import CONFERENCE_TITLES, abbreviation, string_definitions
 from bibclean.bibliography import parse_bib
 from bibclean.exports import export_files
 from bibclean.formatting import format_bibtex
@@ -40,7 +40,8 @@ def test_four_export_combinations_preserve_all_other_text(include_url, abbreviat
         expected = expected.replace("\r\n  URL = {https://example.org/a,b?x={q}%20},", "")
     if abbreviate:
         expected = expected.replace(
-            "{2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}", "{CVPR}"
+            "{2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}",
+            "{" + CONFERENCE_TITLES["CVPR"] + "}",
         )
     assert output == expected
     entry = parse_bib(output)[0]["original"]
@@ -80,7 +81,7 @@ def test_macros_latex_and_comments_keep_unrelated_text():
         "journal=venue", "journal={IEEE Trans. Pattern Anal. Mach. Intell.}"
     ).replace(
         'booktitle="Proceedings of the 36th AAAI Conference on Artificial Intelligence"',
-        "booktitle={AAAI}",
+        "booktitle={" + CONFERENCE_TITLES["AAAI"] + "}",
     )
     assert len(changes) == 2
     unknown = "@article{k,journal=UnknownMacro,title={Keep},year={2024}}"
@@ -144,12 +145,12 @@ def test_url_removal_retains_comments_next_to_field():
         (
             "IEEE Transactions on Circuits and Systems for Video Technology",
             "TCSVT",
-            "IEEE Trans. Circuit Syst. Video Technol.",
+            "IEEE Trans. Circuits Syst. Video Technol.",
         ),
     ],
 )
 def test_known_venue_variants_follow_supplied_spelling(full, key, short):
-    assert abbreviation(full) == (key, short)
+    assert abbreviation(full) == (key, CONFERENCE_TITLES.get(key, short))
 
 
 @pytest.mark.parametrize(
@@ -176,7 +177,7 @@ def test_exports_change_only_merged_and_record_exact_edits(tmp_path):
     store = Store(tmp_path)
     files = export_files(job, store, include_url=False, abbreviate=True)
     entry = parse_bib(files["merged.bib"])[0]["original"]
-    assert entry["booktitle"] == "CVPR" and "url" not in entry
+    assert entry["booktitle"] == CONFERENCE_TITLES["CVPR"] and "url" not in entry
     assert entry["ID"] == "input"
     assert files["entries/0001-input.bib"] == RAW
     assert files["original.bib"] == job["original_text"]
@@ -186,7 +187,7 @@ def test_exports_change_only_merged_and_record_exact_edits(tmp_path):
     assert report["latex_compatibility"] is True
     assert files["abbreviations.bib"].count("@String(TOG ") == 1
     assert "@String(TOG = {ACM TOG})" in files["abbreviations.bib"]
-    assert "@String(RAL = {IEEE RA-L})" in string_definitions()
+    assert "@String(RAL = {IEEE Robot. Autom. Lett.})" in string_definitions()
     assert job == original
     reverted = export_files(job, store, include_url=True, abbreviate=False)
     assert reverted["merged.bib"] == RAW.replace("{source,", "{input,").replace(
@@ -207,7 +208,7 @@ def test_api_existing_job_export_options_and_saved_cli_defaults(tmp_path, monkey
     path = f"/api/jobs/{job['id']}/export"
     with TestClient(api.app) as client:
         entry = parse_bib(client.get(path).text)[0]["original"]
-        assert entry["booktitle"] == "CVPR" and "url" not in entry
+        assert entry["booktitle"] == CONFERENCE_TITLES["CVPR"] and "url" not in entry
         unchanged = client.get(path + "?include_url=true&abbreviate=false").text
         assert unchanged == RAW.replace("{source,", "{input,").replace(
             "month = June", "month = {June}"
@@ -217,4 +218,7 @@ def test_api_existing_job_export_options_and_saved_cli_defaults(tmp_path, monkey
             assert archive.read("merged.bib") == client.get(path).content
             assert archive.read("entries/0001-input.bib").decode() == RAW
         assert client.get(path + "?abbreviate=unknown").status_code == 422
-        assert "@String(NIPS = {NeurIPS})" in client.get("/api/abbreviations").json()["bibtex"]
+        assert (
+            "@String(NIPS = {" + CONFERENCE_TITLES["NIPS"] + "})"
+            in client.get("/api/abbreviations").json()["bibtex"]
+        )

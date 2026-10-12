@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from bibclean.abbreviations import abbreviation
+from bibclean.abbreviations import CONFERENCE_TITLES, abbreviation
 from bibclean.bibliography import parse_bib
 from bibclean.exports import export_files
 from bibclean.formatting import format_bibtex
@@ -87,8 +87,12 @@ from bibclean.storage import Store
     ],
 )
 def test_extended_venue_spellings(full, short):
-    assert abbreviation(full)[1] == short
-    assert abbreviation(short)[1] == short
+    expected = CONFERENCE_TITLES.get(short, short)
+    if short.startswith("VTC20"):
+        expected = "Proc. IEEE Veh. Technol. Conf. (" + short + ")"
+    assert abbreviation(full)[1] == expected
+    assert abbreviation(short)[1] == expected
+    assert abbreviation(expected)[1] == expected
 
 
 @pytest.mark.parametrize(
@@ -109,7 +113,7 @@ def test_extended_aliases_do_not_swallow_distinct_events(name):
 
 @pytest.mark.parametrize("typ", ["inbook", "incollection"])
 @pytest.mark.parametrize("abbreviate", [False, True])
-def test_conference_type_repair_retains_metadata(typ, abbreviate):
+def test_chapters_retain_type_and_publisher(typ, abbreviate):
     raw = (
         "@"
         + typ
@@ -122,11 +126,10 @@ def test_conference_type_repair_retains_metadata(typ, abbreviate):
     )
     output, changes = format_bibtex(raw, abbreviate=abbreviate)
     before, after = (parse_bib(value)[0]["original"] for value in (raw, output))
-    before["ENTRYTYPE"] = "inproceedings"
     if abbreviate:
-        before["booktitle"] = "ECCV"
+        before["booktitle"] = CONFERENCE_TITLES["ECCV"]
     assert after == before
-    assert any(change["action"] == "entry_type" for change in changes)
+    assert not any(change["action"] == "entry_type" for change in changes)
     assert format_bibtex(output, abbreviate=abbreviate) == (output, [])
 
 
@@ -148,8 +151,13 @@ def test_known_repository_article_without_journal_becomes_misc(identifier):
         + "}"
     )
     output, changes = format_bibtex(raw)
-    assert output == raw.replace("@article", "@misc", 1)
-    assert len(changes) == 1 and changes[0]["field"] == "ENTRYTYPE"
+    after = parse_bib(output)[0]["original"]
+    before = parse_bib(raw)[0]["original"]
+    before["ENTRYTYPE"] = "misc"
+    if "arxiv" in identifier.casefold():
+        before["note"] = "{arXiv}:2401.00001"
+    assert after == before
+    assert changes[0]["field"] == "ENTRYTYPE"
     assert format_bibtex(output) == (output, [])
 
 
@@ -217,12 +225,12 @@ def test_export_type_fixes_are_logged_and_raw_is_untouched(tmp_path, include_url
         "misc",
         "misc",
         "misc",
-        "inproceedings",
+        "inbook",
     ]
     assert files["original.bib"] == job["original_text"]
     for i, raw in enumerate(TYPED_SOURCES):
         assert files[f"entries/{i + 1:04d}-input{i}.bib"] == raw
     changes = json.loads(files["formatting.json"])["changes"]
     types = [change for change in changes if change["action"] == "entry_type"]
-    assert len(types) == 4 and all(change["reason"] for change in types)
+    assert len(types) == 3 and all(change["reason"] for change in types)
     assert job == original

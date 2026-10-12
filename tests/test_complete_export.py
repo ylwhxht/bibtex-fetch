@@ -55,7 +55,10 @@ def test_complete_export_preserves_every_key_and_input_field(
     assert rows[1]["original"]["month"] == "June"
     assert all(("url" in row["original"]) == include_url for row in rows)
     if abbreviate:
-        assert [row["original"]["booktitle"] for row in rows] == ["ICASSP", "IROS"]
+        assert [row["original"]["booktitle"] for row in rows] == [
+            "Proc. IEEE Int. Conf. Acoust., Speech Signal Process. (ICASSP)",
+            "Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS)",
+        ]
     assert (
         format_bibtex(files["merged.bib"], include_url=include_url, abbreviate=abbreviate)[0]
         == files["merged.bib"]
