@@ -12,9 +12,9 @@ BibTeX Fetch 是本机运行的开源文献工具，提供中文可视化界面�
 - **过程可见**：实时查看查询词、完整请求地址、状态码、响应耗时、跳转、重试与来源正文。
 - **来源原文留存**：每条下载内容、HTTP 响应、输入文件与过程日志可打包导出。
 - **格式可选**：勾选是否保留 URL、是否使用期刊／会议缩写，即时预览合并结果。
-- **TPAMI 精简格式**：可选 IEEE 规范词语缩写、超过 6 位作者使用首位加 et al.、省略可选会议信息，保留必要出版字段及在线链接。[规则与边界](docs/TPAMI.md)
+- **arXiv 编号可见**：将来源已有的 arXiv 标识和编号同步到传统 BibTeX 可显示的字段；关闭 URL 或开启缩写仍显示。[处理规则](docs/LATEX.md#arxiv-标识与编号显示)
 - **自动兼容 LaTeX**：合并导出自动处理月份宏、重音字母和普通文本特殊字符；无需额外勾选或手动修补。[处理规则](docs/LATEX.md)
-- **类型兼容**：修正可由现有字段确定的会议／预印本类型，记录每处调整；普通模式保留全部作者、月份、出版社及其他来源字段。
+- **类型兼容**：修正可由现有字段确定的会议／预印本类型，记录每处调整；保留全部作者、月份、出版社及其他来源字段。
 - **任务可恢复**：停止、继续、失败重试、本地历史、条目搜索与日志筛选。
 - **失败原因可见**：区分访问受限、限流、网络失败、标题差异和同标题多版本；完整包自动附待处理清单。检索支持扩大候选和关键词回退。
 - **两种入口**：浏览器界面和命令行共用同一套抓取逻辑。
@@ -85,14 +85,13 @@ python3 -m venv .venv
 | --- | --- | --- |
 | 保留 URL 字段 | 开启 | 关闭后只从合并文件移除 `url`，保留 DOI、eprint 等字段 |
 | 使用期刊／会议缩写 | 关闭 | 根据内置的 107 个缩写键处理 `journal`、`journaltitle`、`booktitle` |
-| TPAMI 精简格式 | 关闭 | 接管 URL 与缩写选项，按 IEEE 写法精简导出副本；完整包附手动调整清单 |
 | 保留未抓取条目的输入内容 | 开启 | 失败／待处理条目保留输入内容并标记来源，避免缺失引用键；关闭则只导出抓取成功条目 |
 | 保留输入引用键 | 开启 | 延续原来的 `\cite{key}`；重复键添加后缀，并输出映射表 |
 | 使用响应缓存 | 关闭 | 可选复用 24 小时内响应，缓存命中单独记录 |
 
-URL 与缩写选项可用于已有任务，无需重新抓取。缩写直接写为 `booktitle = {CVPR}` 等文本，不依赖外部宏。未匹配的名称保留原样；完整规则见[缩写说明](docs/ABBREVIATIONS.md)。
+URL 与缩写选项可用于已有任务，无需重新抓取。会议缩写直接写为 `booktitle = {Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}` 等文本，不依赖外部宏。开启缩写时，仅清单内会议论文删除重复的 `publisher`；书籍、章节、技术报告和 SAE 条目保留出版社。作者、题名、年份、月份及页码保留。未匹配的名称保留原样；完整规则见[缩写说明](docs/ABBREVIATIONS.md)。
 
-TPAMI 精简格式也可用于已有任务，原始文献和来源响应不变。请配合期刊的 IEEE 模板使用；缺失字段或未识别名称会列入 `manual-review.md`，供自行精修。[详细规则](docs/TPAMI.md)
+arXiv 标识和编号自动通过 `note` 显示，原 `eprint` 保留；缺失或冲突的编号列入 `formatting-review.md`，不自动猜测。2.1.2 已移除极简模式，旧设置不再截断作者或删除月份。三个明确列出的引用键与题名可按用户指定的正式会议字段修正，不再额外添加 arXiv 备注，详见[导出标准](docs/LATEX.md)。已有任务直接重新导出即可。
 
 默认 `merged.bib` 保留全部输入条目，未抓取条目不会伪装成抓取成功，也不会使用被拒绝的响应。完整包另含仅成功条目的 `downloaded.bib`、记录每条来源与数量的 `export-summary.json`，以及原文、输入、日志、响应、CSV 报告和格式修改记录。各文件含义见[导出内容](docs/USAGE.md#导出文件)。
 
@@ -101,7 +100,6 @@ TPAMI 精简格式也可用于已有任务，原始文献和来源响应不变�
 ```shell
 uv run --frozen --no-dev bibtex-fetch-cli examples/sample.bib -o output/demo
 uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/paper --no-url --abbreviate
-uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/tpami --tpami-minimal
 uv run --frozen --no-dev bibtex-fetch-cli --help
 ```
 

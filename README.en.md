@@ -13,10 +13,10 @@ A local bibliography tool with a Chinese browser interface and a CLI. No languag
 - Live query, request, status, timing, redirect, retry and response logs.
 - Original downloaded BibTeX and HTTP responses retained separately.
 - Optional URL-field removal and 107 predefined venue abbreviations.
-- Opt-in **TPAMI 精简格式** / `--tpami-minimal`: IEEE word abbreviations, first author plus et al. above six authors, optional print details omitted, and online locators retained. [Policy](docs/TPAMI.md)
+- Existing arXiv identifiers exposed in classic BibTeX display fields, including when URLs are omitted or venue abbreviations are enabled. [Rules](docs/LATEX.md#arxiv-标识与编号显示)
 - Complete exports by default: unfetched entries retain their original input with explicit provenance; downloaded-only export remains available.
 - Automatic LaTeX compatibility in every merged export: month tokens, accented names, Unicode punctuation and special text characters.
-- Explicit conference and preprint identifiers support narrow entry-type corrections at export. Normal mode retains all authors, months, publishers and other source metadata; every correction is logged.
+- Explicit conference and preprint identifiers support narrow entry-type corrections at export. All authors, months, publishers and other source metadata are retained; every correction is logged.
 - Preview, ZIP export, citation-key mapping, history, cancellation and retry.
 - Bounded search expansion and typography-aware title matching, with explicit access/rate-limit errors and a `retrieval-review.md` follow-up list.
 - Shared retrieval logic between the GUI and CLI.
@@ -59,7 +59,6 @@ In the UI, load or paste a UTF-8 `.bib` file, click **读取文章列表**, then
 ```shell
 uv run --frozen --no-dev bibtex-fetch-cli examples/sample.bib -o output/demo
 uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/paper --no-url --abbreviate
-uv run --frozen --no-dev bibtex-fetch-cli references.bib -o output/tpami --tpami-minimal
 uv run --frozen --no-dev bibtex-fetch-cli --help
 ```
 
@@ -69,13 +68,15 @@ Use `--sources`, `--cache`, `--source-keys`, `--mailto`, and `--data-dir` as nee
 
 ## Export behavior
 
-TPAMI minimal mode defaults to off and also works on saved jobs. When enabled, it takes precedence over the ordinary URL and abbreviation switches; disabling it restores those choices. Use the journal's IEEE template for final layout. This deterministic preset is not a bibliographic or submission audit: unknown names and missing fields stay unchanged, with a `manual-review.md` checklist in the ZIP. Exact source text and complete author lists remain available in the original-input and raw-source files.
+Version 2.1.2 removes minimal mode and its CLI option. Old saved settings or query parameters cannot reactivate it. URL and abbreviation switches remain independent. Abbreviations now use explicit proceedings titles. Only listed conference papers lose redundant publishers; books, chapters, technical reports and SAE entries retain publishers. Author lists, titles, dates and pages are not shortened.
+
+Classic BibTeX styles such as IEEEtran and IEEEtranN ignore `eprint` and `archivePrefix`. Exports copy explicit source arXiv identifiers into `note` so references display `arXiv:identifier`, even without a URL; `eprint` is retained. Existing notes and visible identifiers are preserved without duplication. Missing or conflicting identifiers are not guessed; the ZIP includes `formatting-review.md` when manual input is needed. Three explicitly requested publication corrections require both the original key and matching title, use only documented fields, and do not add arXiv notes. See the [export standard](docs/LATEX.md). Saved jobs can be exported again without fetching.
 
 By default, `merged.bib` contains every input entry in order: successful downloads use source BibTeX; failed or pending entries keep the original input fields and citation keys with an explicit comment. Retained inputs are not counted as successful downloads. Uncheck **保留未抓取条目的输入内容**, or use `--downloaded-only`, to omit unfetched entries. The ZIP always includes `downloaded.bib` (successful downloads only) and `export-summary.json` (counts and per-entry provenance). These options also work on saved jobs without fetching again.
 
 The merged file uses input citation keys and automatically normalizes source field syntax for BibTeX/LaTeX. For example, `month=June` becomes `month={June}`, accented letters become protected TeX commands, and a literal underscore in a title becomes `\_`. Existing math and URL/DOI identifiers are retained. This applies to GUI previews, BibTeX downloads, ZIP files and CLI output without another option. `--no-url` removes only the top-level URL field. `--abbreviate` applies deterministic mappings to journal, journaltitle and booktitle; unknown names remain unchanged.
 
-Abbreviations are braced text values, such as `{CVPR}`, not external macro references. Repeated definitions in the original mapping use the last value: TOG is ACM TOG. The Visual Computer uses TVCOMP / Vis. Comput.
+Abbreviations are braced text values, such as `{Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}`, not external macro references. RAL uses `IEEE Robot. Autom. Lett.` and TCSVT uses `IEEE Trans. Circuits Syst. Video Technol.`. TOG is ACM TOG; The Visual Computer uses TVCOMP / Vis. Comput.
 
 The bundle includes merged and original BibTeX, individual raw entries, failed inputs, process logs, source responses, CSV reports, key mappings, and formatting changes. Downloaded raw content is retained independently of export formatting. Unknown Unicode and custom external TeX macros are not guessed and may require template support; see the [LaTeX guide](docs/LATEX.md). Replace the `.bib` and rebuild generated `.bbl` files when upgrading an old export.
 
