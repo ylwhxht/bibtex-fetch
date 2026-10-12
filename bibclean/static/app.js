@@ -126,8 +126,8 @@ async function checkServerRules() {
     const health = await api("/api/health");
     titleMatchingReady = health.title_matching === "strict-v2";
     completeExportReady =
-      health.complete_export === "v1" && health.export_formatting === "v3" &&
-      health.arxiv_display === "v1";
+      health.complete_export === "v1" && health.export_formatting === "v4" &&
+      health.arxiv_display === "v2";
     notice.textContent =
       "当前服务尚未加载新版导出或标题匹配规则。请先关闭正在运行的 BibTeX Fetch，再重新启动并刷新页面。";
   } catch {
@@ -409,7 +409,7 @@ function exportURL(format) {
 }
 function showExportOptions() {
   const options = exportOptions();
-  const style = `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "按表缩写期刊／会议名" : "保留来源名称"}。arXiv 标识与编号不随 URL 选项隐藏。`;
+  const style = `${options.include_url ? "保留 URL" : "移除 URL，保留 DOI"} · ${options.abbreviate ? "规范期刊／会议缩写，清单内会议省略重复出版社" : "保留来源名称与出版社"}。保留完整作者与月份；arXiv 编号通过 note 显示。`;
   $("export-hint").textContent =
     `${style}${options.include_unfetched ? "未抓取条目保留输入内容及引用键，并标记来源；不计为抓取成功。" : "仅导出抓取成功条目，其他引用键不会进入合并文件。"}合并导出自动处理 LaTeX 兼容格式。`;
 }
@@ -621,7 +621,7 @@ listen("show-abbreviations", "click", async () => {
     "ABBREVIATION TABLE";
   $("detail-heading").textContent = `期刊／会议缩写表 · ${data.count} 项`;
   $("detail-content").innerHTML =
-    `<p class="detail-meta">沿用提供的缩写拼写，重复键合并。TOG 使用最后给定的 ACM TOG；The Visual Computer 全称使用 TVCOMP（Vis. Comput.）。未匹配名称保留原样。</p><pre class="source-pre">${esc(data.bibtex)}</pre><p class="detail-meta">合并文件直接写入缩写文本，例如 booktitle = {CVPR}，无需另行加载字符串宏。完整抓取包包含此表。</p>`;
+    `<p class="detail-meta">会议采用规范词语缩写与简称；RAL 使用 IEEE Robot. Autom. Lett.，TCSVT 使用 IEEE Trans. Circuits Syst. Video Technol.。未匹配名称保留原样。只有清单内会议论文省略重复出版社，书籍、章节、技术报告与 SAE 条目保留。</p><pre class="source-pre">${esc(data.bibtex)}</pre><p class="detail-meta">合并文件直接写入缩写文本，例如 booktitle = {Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}，无需另行加载字符串宏。完整抓取包包含此表。</p>`;
   $("detail-dialog").showModal();
 });
 listen("history", "click", async (e) => {

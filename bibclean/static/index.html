@@ -393,7 +393,7 @@
           <code>url</code> 字段，保留 DOI。缩写按固定全称／别名表处理
           <code>journal</code>、<code>journaltitle</code> 和
           <code>booktitle</code>，未匹配名称原样保留。缩写直接写成
-          <code>booktitle = {CVPR}</code>
+          <code>booktitle = {Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}</code>
           这样的文本值。重复缩写键以最后定义为准：TOG 使用 ACM TOG；The Visual
           Computer 全称使用 TVCOMP 的 Vis. Comput.。完整包中的
           <code>formatting.json</code> 记录每次字段调整。
@@ -407,8 +407,8 @@
         </p>
         <p>
           来源中的 arXiv 标识和编号会同时写入传统 BibTeX 样式可显示的
-          <code>howpublished</code> 或 <code>note</code> 字段，例如 arXiv:2401.00001。
-          关闭 URL 或开启缩写仍会显示编号；作者、月份和出版社按来源保留。
+          <code>note</code> 字段，例如 arXiv:2401.00001，原 eprint 保留。
+          关闭 URL 或开启缩写仍会显示编号；作者与月份保留。仅清单内会议论文省略重复出版社，书籍、章节、技术报告和 SAE 条目保留。
           编号缺失或冲突时不猜测，在完整包 <code>formatting-review.md</code> 中列出。
           原始输入和抓取原文不变。
         </p>
