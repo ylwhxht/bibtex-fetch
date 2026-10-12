@@ -18,6 +18,7 @@ A local bibliography tool with a Chinese browser interface and a CLI. No languag
 - Automatic LaTeX compatibility in every merged export: month tokens, accented names, Unicode punctuation and special text characters.
 - Explicit conference and preprint identifiers support narrow entry-type corrections at export. Normal mode retains all authors, months, publishers and other source metadata; every correction is logged.
 - Preview, ZIP export, citation-key mapping, history, cancellation and retry.
+- Bounded search expansion and typography-aware title matching, with explicit access/rate-limit errors and a `retrieval-review.md` follow-up list.
 - Shared retrieval logic between the GUI and CLI.
 
 The tool does not verify bibliographic truth or reconstruct references from search metadata. Title search requires a unique matching record; there is no first-result fallback. When the input supplies a title, the downloaded BibTeX must also match it, including downloads through identifiers. Missing or different titles are rejected and the next source is tried. Identifier-only inputs remain supported and explicitly log that no title comparison was possible. Multiple distinct same-title hits are treated as ambiguous. See [title matching](docs/TITLE_MATCHING.md) for normalization, logs and migration of old jobs.
