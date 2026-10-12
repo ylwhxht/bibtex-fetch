@@ -7,6 +7,7 @@ import re
 from .abbreviations import CONFERENCES, abbreviation
 from .bibliography import _blocks, arxiv_of, doi_of, parse_bib
 from .latex_compat import compatible_expression
+from .tpami import compact_author, removable_fields, review_notes, venue_name
 
 
 def _fields(raw, start, end):
@@ -88,7 +89,7 @@ def _preprint_repository(values):
     return "arXiv:" + ident if ident else ""
 
 
-def format_bibtex(raw, *, include_url=True, abbreviate=False):
+def format_bibtex(raw, *, include_url=True, abbreviate=False, tpami_minimal=False):
     blocks = list(_blocks(raw, positions=True))
     # Parse a semantic view without top-level field comments, which the
     # upstream parser can mistake for malformed entries. Edits still target
@@ -142,18 +143,58 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                     "reason": reason,
                 }
             )
-        removed = {"url"} if not include_url else set()
+        # The explicit preset owns names and URL policy. Old switches resume
+        # unchanged when it is disabled. Online-only locators must survive.
+        removed = (
+            removable_fields(new_type, values)
+            if tpami_minimal
+            else {"url"}
+            if not include_url
+            else set()
+        )
+        if tpami_minimal:
+            changes.extend(
+                {"field": field, "action": "manual_review", "reason": reason}
+                for field, reason in review_notes(new_type, values)
+            )
         for field, removal_start, removal_end, value_start, value_end, comments in fields:
             expression = raw[value_start:value_end]
             replacement = expression
             if field in removed:
                 edits.append((removal_start, removal_end, comments))
                 changes.append(
-                    {"field": field, "action": "remove", "before": expression, "after": ""}
+                    {
+                        "field": field,
+                        "action": "tpami_remove" if tpami_minimal else "remove",
+                        "before": expression,
+                        "after": "",
+                    }
                 )
                 continue
-            if abbreviate and field in {"journal", "journaltitle", "booktitle"}:
-                match = abbreviation(values.get(field, ""), expression)
+            if tpami_minimal and field == "author":
+                author = compact_author(values.get(field, ""))
+                if author != values.get(field, ""):
+                    replacement = "{" + author + "}"
+                    changes.append(
+                        {
+                            "field": field,
+                            "action": "tpami_authors",
+                            "before": expression,
+                            "after": replacement,
+                            "reason": "more than six authors: first author and others",
+                        }
+                    )
+            if (abbreviate or tpami_minimal) and field in {"journal", "journaltitle", "booktitle"}:
+                lookup = venue_name if tpami_minimal else abbreviation
+                match = lookup(values.get(field, ""), expression)
+                if (
+                    tpami_minimal
+                    and field == "booktitle"
+                    and not values.get("year")
+                    and re.search(r"(?:19|20)\d{2}", values.get(field, ""))
+                ):
+                    # The name may be the only supplied publication date.
+                    match = None
                 if match:
                     macro, short = match
                     replacement = "{" + short + "}"
@@ -161,7 +202,7 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                         changes.append(
                             {
                                 "field": field,
-                                "action": "abbreviate",
+                                "action": "tpami_abbreviate" if tpami_minimal else "abbreviate",
                                 "key": macro,
                                 "before": expression,
                                 "after": replacement,

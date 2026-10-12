@@ -125,6 +125,7 @@ async def health():
         "title_matching": "strict-v1",
         "complete_export": "v1",
         "export_formatting": "v2",
+        "tpami_minimal": "v1",
     }
 
 
@@ -269,6 +270,7 @@ async def export_job(
     include_url: bool | None = None,
     abbreviate: bool | None = None,
     include_unfetched: bool | None = None,
+    tpami_minimal: bool | None = None,
 ):
     job = get_job(job_id)
     if format not in {"bib", "zip", "log"}:
@@ -290,6 +292,7 @@ async def export_job(
         include_url=include_url,
         abbreviate=abbreviate,
         include_unfetched=include_unfetched,
+        tpami_minimal=tpami_minimal,
     )
     name, media, data = {
         "bib": ("merged.bib", "application/x-bibtex", files["merged.bib"]),
