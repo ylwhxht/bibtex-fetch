@@ -12,9 +12,10 @@ A local bibliography tool with a Chinese browser interface and a CLI. No languag
 - Crossref, DataCite, arXiv and DBLP source support.
 - Live query, request, status, timing, redirect, retry and response logs.
 - Original downloaded BibTeX and HTTP responses retained separately.
-- Optional URL-field removal and 72 predefined venue abbreviations.
+- Optional URL-field removal and 107 predefined venue abbreviations.
 - Complete exports by default: unfetched entries retain their original input with explicit provenance; downloaded-only export remains available.
 - Automatic LaTeX compatibility in every merged export: month tokens, accented names, Unicode punctuation and special text characters.
+- Explicit conference and preprint identifiers support narrow entry-type corrections at export. All authors, months, publishers and other source metadata remain intact; every correction is logged.
 - Preview, ZIP export, citation-key mapping, history, cancellation and retry.
 - Shared retrieval logic between the GUI and CLI.
 

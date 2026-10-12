@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.3 — 导出缩写与条目类型修复
+
+- 缩写表增至 107 项，补充 IV、ITSC、ICPRS、ICVES、RadarConf、VTC、ICONIP、SECON 等会议及 ESWA、TNNLS 等期刊；识别 ICCVW 单数 Workshop、ECCV Workshops 和明确的来源名称变体。
+- 导出时将带已知会议 `booktitle` 的 `inbook`／`incollection` 转为 `inproceedings`，避免样式把会议名当作书籍标题处理。
+- 对缺少期刊且带明确 TechRxiv、SSRN、arXiv 标识的来源 `article`，导出为 `misc`，修复 `empty journal` 警告；已有期刊、会议或交叉引用的条目保持类型，不补造期刊名。
+- 类型修改记录在 `formatting.json`；保留完整作者、月份、出版社、页码、年份和引用键，原始输入、下载响应及历史任务数据不变。
+- 增加正反匹配、元数据保持、原文保持和实际编译回归；检查 BibTeX `.blg` 中的警告，避免只检查退出码。
+- 更新界面版本检查，提示重启尚未加载新导出规则的服务。
+
 ## 2.0.2 — 完整条目导出与会议缩写修复
 
 - 默认 `merged.bib` 保留全部输入条目：抓取成功使用来源 BibTeX，失败／待处理条目保留输入内容与引用键，并用注释及报告标记来源，不改变抓取状态。
