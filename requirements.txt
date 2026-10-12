@@ -14,8 +14,9 @@ anyio==4.15.1 \
     # via
     #   httpx
     #   starlette
-bibtexparser==1.4.3 \
-    --hash=sha256:a9c7ded64bc137720e4df0b1b7f12734edc1361185f1c9097048ff7c35af2b8f
+bibtexparser==2.1.0 \
+    --hash=sha256:3b4b1de50ce45ee9091ccca72e1efc8732ab3ef615b70bcecc537c17cd84753e \
+    --hash=sha256:9f48851eef4693cb7ef6897f7628966c5d0ef49b6403b13a862679a4c313d176
     # via bibtex-fetch
 certifi==2026.7.22 \
     --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
