@@ -1,0 +1,34 @@
+# Python and tools
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Local jobs, downloads, credentials and editor state
+data/
+output/
+outputs/
+*.sqlite*
+*.db
+*.log
+*.jsonl
+*.zip
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Bibliographies are private unless deliberately added as public examples.
+*.bib
+!/examples/*.bib
+!/bibclean/resources/*.bib
