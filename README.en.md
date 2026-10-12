@@ -12,7 +12,8 @@ A local bibliography tool with a Chinese browser interface and a CLI. No languag
 - Crossref, DataCite, arXiv and DBLP source support.
 - Live query, request, status, timing, redirect, retry and response logs.
 - Original downloaded BibTeX and HTTP responses retained separately.
-- Optional URL-field removal and 70 predefined venue abbreviations.
+- Optional URL-field removal and 72 predefined venue abbreviations.
+- Complete exports by default: unfetched entries retain their original input with explicit provenance; downloaded-only export remains available.
 - Automatic LaTeX compatibility in every merged export: month tokens, accented names, Unicode punctuation and special text characters.
 - Preview, ZIP export, citation-key mapping, history, cancellation and retry.
 - Shared retrieval logic between the GUI and CLI.
@@ -63,6 +64,8 @@ JSON Lines events go to stdout; the final summary goes to stderr. Exit codes are
 Use `--sources`, `--cache`, `--source-keys`, `--mailto`, and `--data-dir` as needed. Input keys are preserved by default; duplicate keys gain suffixes. Each input remains independent: there is no paper deduplication. Cache reads are off by default.
 
 ## Export behavior
+
+By default, `merged.bib` contains every input entry in order: successful downloads use source BibTeX; failed or pending entries keep the original input fields and citation keys with an explicit comment. Retained inputs are not counted as successful downloads. Uncheck **保留未抓取条目的输入内容**, or use `--downloaded-only`, to omit unfetched entries. The ZIP always includes `downloaded.bib` (successful downloads only) and `export-summary.json` (counts and per-entry provenance). These options also work on saved jobs without fetching again.
 
 The merged file uses input citation keys and automatically normalizes source field syntax for BibTeX/LaTeX. For example, `month=June` becomes `month={June}`, accented letters become protected TeX commands, and a literal underscore in a title becomes `\_`. Existing math and URL/DOI identifiers are retained. This applies to GUI previews, BibTeX downloads, ZIP files and CLI output without another option. `--no-url` removes only the top-level URL field. `--abbreviate` applies deterministic mappings to journal, journaltitle and booktitle; unknown names remain unchanged.
 

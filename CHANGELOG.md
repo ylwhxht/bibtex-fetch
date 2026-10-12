@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.2 — 完整条目导出与会议缩写修复
+
+- 默认 `merged.bib` 保留全部输入条目：抓取成功使用来源 BibTeX，失败／待处理条目保留输入内容与引用键，并用注释及报告标记来源，不改变抓取状态。
+- 增加“保留未抓取条目的输入内容”开关；CLI 使用 `--downloaded-only`、API 使用 `include_unfetched=false` 可仅导出成功条目。
+- 完整包新增 `downloaded.bib` 和 `export-summary.json`；界面显示导出总数、抓取数、保留数或遗漏数。
+- 支持 ICASSP 等名称同时带前后缩写及年份的形式，新增 IROS、ICRA，内置定义增至 72 项；联合会议和 Workshop 不误合并。
+- 输入保留条目同样应用 URL、缩写与 LaTeX 兼容处理；增加 API、CLI、失败／中断、原文保持及实际编译回归。
+
 ## 2.0.1 — LaTeX 兼容导出与严格标题匹配
 
 ### 抓取与标题匹配

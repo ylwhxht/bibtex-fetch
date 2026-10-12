@@ -81,13 +81,14 @@ python3 -m venv .venv
 | 选项 | 默认 | 效果 |
 | --- | --- | --- |
 | 保留 URL 字段 | 开启 | 关闭后只从合并文件移除 `url`，保留 DOI、eprint 等字段 |
-| 使用期刊／会议缩写 | 关闭 | 根据内置的 70 个缩写键处理 `journal`、`journaltitle`、`booktitle` |
+| 使用期刊／会议缩写 | 关闭 | 根据内置的 72 个缩写键处理 `journal`、`journaltitle`、`booktitle` |
+| 保留未抓取条目的输入内容 | 开启 | 失败／待处理条目保留输入内容并标记来源，避免缺失引用键；关闭则只导出抓取成功条目 |
 | 保留输入引用键 | 开启 | 延续原来的 `\cite{key}`；重复键添加后缀，并输出映射表 |
 | 使用响应缓存 | 关闭 | 可选复用 24 小时内响应，缓存命中单独记录 |
 
 URL 与缩写选项可用于已有任务，无需重新抓取。缩写直接写为 `booktitle = {CVPR}` 等文本，不依赖外部宏。未匹配的名称保留原样；完整规则见[缩写说明](docs/ABBREVIATIONS.md)。
 
-完整抓取包包括 `merged.bib`、`entries/`、`original.bib`、`failed.bib`、`process.jsonl`、`responses/`、`report.csv`、`key-map.csv`、`results.json` 和 `formatting.json`。各文件含义见[导出内容](docs/USAGE.md#导出文件)。
+默认 `merged.bib` 保留全部输入条目，未抓取条目不会伪装成抓取成功，也不会使用被拒绝的响应。完整包另含仅成功条目的 `downloaded.bib`、记录每条来源与数量的 `export-summary.json`，以及原文、输入、日志、响应、CSV 报告和格式修改记录。各文件含义见[导出内容](docs/USAGE.md#导出文件)。
 
 ## 命令行
 
@@ -128,7 +129,7 @@ uv build
 | 文档 | 内容 |
 | --- | --- |
 | [使用手册](docs/USAGE.md) | 安装、界面、CLI、导出、迁移、常见问题 |
-| [缩写说明](docs/ABBREVIATIONS.md) | 70 个缩写、重复定义约定、扩展方式 |
+| [缩写说明](docs/ABBREVIATIONS.md) | 72 个缩写、重复定义约定、扩展方式 |
 | [架构说明](docs/ARCHITECTURE.md) | 来源路由、日志、存储和模块分工 |
 | [API 说明](docs/API.md) | 本机接口、事件流、导出参数 |
 | [开发说明](docs/DEVELOPMENT.md) | 环境、测试、打包与维护 |
