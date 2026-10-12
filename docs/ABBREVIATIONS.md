@@ -10,6 +10,8 @@
 
 主会与 Workshop 分别匹配。例如 CVPR 和 CVPRW、ICCV 和 ICCVW 不互换。未知、联合会议或额外包含未列出词语的名称保留原样。
 
+2.0.3 补充 IV、ITSC、ICPRS、ICVES、RadarConf、SECON、ICONIP 等会议和 ESWA、TNNLS 等期刊。`VTC2022-Spring` 等形式保留年份及春秋季标识；ECCV Workshops 单独输出 `ECCVW`。少数明确列出的来源拼写变体（如 `Procedings` 和 ICCVW 的单数 `Workshop`）也可匹配。
+
 输出使用带花括号的文本：
 
 ```bibtex
@@ -26,7 +28,7 @@ journal = {IEEE Trans. Pattern Anal. Mach. Intell.},
 - `TOG` 最终为 `ACM TOG`，同时识别旧值 `ACM Trans. Graph.`。
 - `NIPS` 对应 `NeurIPS`。
 - `TVC` 与 `TVCOMP` 是不同键，两者保留。全称 The Visual Computer / Visual Computer 使用靠后的 `TVCOMP = Vis. Comput.`。
-- 原始重复键去重后有 70 个定义；2.0.2 增加 IROS、ICRA 后共 72 个。
+- 原始重复键去重后有 70 个定义；2.0.2 共 72 个，2.0.3 增至 107 个。新增名称使用代码中明确列出的固定输出，不自动推测任意缩写。
 - `TCSVT`、`SPL` 等保持最初提供的缩写拼写。
 
 ## 完整表
@@ -64,6 +66,35 @@ journal = {IEEE Trans. Pattern Anal. Mach. Intell.},
 | `ICASSP` | ICASSP |
 | `ICIP` | ICIP |
 | `ICLR` | ICLR |
+| `IV` | IV |
+| `ITSC` | ITSC |
+| `ICPRS` | ICPRS |
+| `ICVES` | ICVES |
+| `ICDL` | ICDL |
+| `ICTC` | ICTC |
+| `ICECET` | ICECET |
+| `NNICE` | NNICE |
+| `INDIN` | INDIN |
+| `SECON` | SECON |
+| `ISAS` | ISAS |
+| `CCC` | CCC |
+| `RadarConf` | RadarConf |
+| `VTCSpring` | VTC-Spring |
+| `VTCFall` | VTC-Fall |
+| `ICONIP` | ICONIP |
+| `ECCVW` | ECCVW |
+| `GeMiC` | GeMiC |
+| `CRV` | CRV |
+| `MCSoC` | MCSoC |
+| `ICCRI` | ICCRI |
+| `ROBIO` | ROBIO |
+| `VCIP` | VCIP |
+| `CSCWD` | CSCWD |
+| `IECON` | IECON |
+| `ICAUS` | ICAUS |
+| `ECSA` | ECSA |
+| `CoRL` | CoRL |
+| `EuRAD` | EuRAD |
 | `IROS` | IROS |
 | `ICRA` | ICRA |
 | `IJCAI` | IJCAI |
@@ -107,6 +138,12 @@ journal = {IEEE Trans. Pattern Anal. Mach. Intell.},
 | `IJAT` | Int. J. Automot. Technol. |
 | `ARS` | Adv. Radio Sci. |
 | `JCD` | J. Control Decis. |
+| `TNNLS` | IEEE Trans. Neural Netw. Learn. Syst. |
+| `ESWA` | Expert Syst. Appl. |
+| `NN` | Neural Netw. |
+| `ISPRSARCH` | ISPRS Archives |
+| `AIReview` | Artif. Intell. Rev. |
+| `IJPEM` | Int. J. Precis. Eng. Manuf. |
 
 ## 添加或修改缩写
 

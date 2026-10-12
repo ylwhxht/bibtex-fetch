@@ -97,7 +97,7 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 | `key-map.csv` | 输入键、来源键、导出键之间的对应关系 |
 | `results.json` | 任务、设置、条目原文与结果 |
 | `formatting.json` | 当前格式选项、URL 删除、缩写替换及 LaTeX 兼容处理的字段修改前后记录 |
-| `abbreviations.bib` | 启用缩写时附带的 72 个参考定义 |
+| `abbreviations.bib` | 启用缩写时附带的 107 个参考定义 |
 | `README.txt` | 此次导出包内容说明 |
 
 导出选项不会改写 `entries/`、`responses/` 与已有过程日志。URL／缩写选项可随时调整；合并文件始终执行 LaTeX 兼容处理，未经改动的来源文本在 `entries/` 中。

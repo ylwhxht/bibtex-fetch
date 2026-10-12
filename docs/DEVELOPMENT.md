@@ -48,6 +48,8 @@ uv run --frozen pytest -q
 
 `tests/test_title_matching.py` 覆盖搜索与下载两阶段的标题限制、同名歧义、标识符和缓存路径、缺少标题的记录，以及被拒绝响应的保留。匹配规则见[标题匹配](TITLE_MATCHING.md)；这些测试检查代码行为，不代表文献字段的准确率。
 
+`tests/test_export_semantics.py` 覆盖新增会议别名、主会／Workshop 反例、明确标识支持的预印本类型修正以及元数据和原文保持。`tests/test_latex_compat.py` 实际编译这些导出，并检查 `.blg` 中没有 `Warning--` 行；BibTeX 可能在 `empty journal` 等警告出现时仍返回 0，所以只检查退出码不足以通过回归。
+
 `tests/test_latex_compat.py` 覆盖模拟 HTTP 抓取 → Runner → API／ZIP／CLI 默认导出，确认无需附加参数即可获得兼容语法，并且原文与响应保持不变。若本机已安装 `bibtex`、`pdflatex` 和 `kpsewhich`，还会使用 `plain`、`abbrv`、`IEEEtran` 实际编译四种 URL／缩写组合；缺失 TeX 工具或样式时该部分显示跳过。独立的 CI `latex` 任务安装 TeX 后运行编译回归；用户运行本工具不需要安装 TeX。
 
 CI 在 Windows / Linux 的 Python 3.11、3.12、3.13 和 macOS 的 Python 3.12 上运行同一套检查及安装包冒烟检查。CI 只有仓库读取权限，不含自动发布步骤。它只有在仓库上传到 GitHub 并触发工作流后才实际执行。
