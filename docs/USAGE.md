@@ -73,6 +73,7 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 | --- | --- |
 | 保留 URL 字段 | 关闭时，仅删除顶层 `url` 字段，大小写不敏感；不会删除注释、正文或其他字段里的网址 |
 | 使用期刊／会议缩写 | 对 `journal`、`journaltitle`、`booktitle` 使用固定映射；未匹配名称保持原样 |
+| TPAMI 精简格式 | 默认关闭；接管 URL／缩写选项，使用规范词语缩写、精简长作者列表和可选会议信息，保留在线文献链接；[详细规则](TPAMI.md) |
 | 保留未抓取条目的输入内容 | 默认开启，失败／等待／处理中的条目保留输入字段和引用键，并标记为输入来源；关闭则只导出成功条目 |
 
 启用缩写后生成 `journal = {IEEE Trans. Pattern Anal. Mach. Intell.}`、`booktitle = {CVPR}` 这样的文本值。完整包附 `abbreviations.bib`，但合并文件不依赖该宏文件。重复定义处理见[缩写说明](ABBREVIATIONS.md)。
@@ -97,6 +98,7 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 | `key-map.csv` | 输入键、来源键、导出键之间的对应关系 |
 | `results.json` | 任务、设置、条目原文与结果 |
 | `formatting.json` | 当前格式选项、URL 删除、缩写替换及 LaTeX 兼容处理的字段修改前后记录 |
+| `manual-review.md` | TPAMI 模式下的格式缺口与未识别名称清单，供人工精修；不自动补写字段 |
 | `abbreviations.bib` | 启用缩写时附带的 107 个参考定义 |
 | `README.txt` | 此次导出包内容说明 |
 
@@ -123,6 +125,7 @@ uv run --frozen --no-dev bibtex-fetch-cli references.bib --data-dir ./data
 | `--source-keys` | 关闭 | 使用来源引用键，仍处理冲突 |
 | `--no-url` | 关闭 | 从合并文件移除 URL 字段 |
 | `--abbreviate` | 关闭 | 启用内置缩写表 |
+| `--tpami-minimal` | 关闭 | TPAMI 精简格式，优先于 `--no-url` 和 `--abbreviate`，保留在线文献所需链接 |
 | `--downloaded-only` | 关闭 | 合并文件只导出抓取成功条目；默认保留并标记未抓取输入 |
 | `--mailto` | 空 | Crossref 联系邮箱，可选 |
 | `--data-dir` | 本机用户数据目录 | 任务与缓存存储位置 |

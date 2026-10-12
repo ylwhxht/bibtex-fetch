@@ -103,11 +103,14 @@ with httpx.Client(base_url=base, timeout=120) as client:
 | `format` | `bib` / `zip` / `log` | 默认 `bib` |
 | `include_url` | `true` / `false` | 是否保留 URL |
 | `abbreviate` | `true` / `false` | 是否使用缩写 |
+| `tpami_minimal` | `true` / `false` | 默认 `false`；IEEE／TPAMI 精简格式，优先于 URL 与缩写参数；规则见 [TPAMI.md](TPAMI.md) |
 | `include_unfetched` | `true` / `false` | 默认 `true`，保留未抓取输入并标记来源；`false` 只导出成功条目 |
 
 未指定格式选项时使用任务中保存的默认值；GUI 创建的任务默认保留 URL、不缩写、保留未抓取输入，旧任务同样默认保留未抓取输入。显式查询参数只影响本次导出，不修改下载原文。只有关闭 `include_unfetched` 且无成功条目时，导出 `bib` 才返回 409；仍可下载 ZIP 或日志。`/health` 的 `complete_export: "v1"` 表示支持完整导出。
 
 2.0.3 的 `/api/health` 另返回 `export_formatting: "v2"`，表示服务已加载扩展缩写与会议／预印本类型兼容规则。新版网页会提示重启旧服务。类型转换和触发原因写入 `formatting.json` 的 `entry_type` 动作，详见 [LaTeX 导出规则](LATEX.md#来源条目类型兼容)。
+
+2.1.0 的 `/api/health` 新增 `tpami_minimal: "v1"`。模式开启后，`formatting.json` 以 `tpami_authors`、`tpami_abbreviate`、`tpami_remove` 记录修改；`manual_review` 表示保留原文、待人工处理的项目，ZIP 同时附 `manual-review.md`。API、预览、单独 BibTeX、ZIP 和 CLI 共用相同格式流程。
 
 所有 `merged.bib` 自动执行 [LaTeX 兼容处理](LATEX.md)，不需要额外参数。直接下载 `bib` 与 ZIP 中的合并文件使用同一流程。`formatting.json` 中 `latex_compatibility` 固定为 `true`，`changes` 的 `latex_compatibility` 动作记录具体字段的 `before` / `after`；原始响应下载保持不变。
 
