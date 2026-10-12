@@ -58,9 +58,13 @@ SQLite 使用 WAL。每次条目变化持久化任务 JSON，事件按任务内�
 
 ## 导出约定
 
-来源 BibTeX 保留为原文。合并文件执行用户选定的引用键、URL、venue 格式处理，并自动通过 `latex_compat.py` 规范月份宏、重音字母、Unicode 标点与普通文本特殊字符。已有数学片段、TeX 转义与 URL／DOI 标识不重复转义。不推断或补写文献元数据。字段修改前后记录到 `formatting.json`，引用键关系写入 `key-map.csv`。导出不会修改已保存的下载原文。
+来源 BibTeX 保留为原文。合并文件执行用户选定的引用键、URL、venue 格式处理，并自动通过 `latex_compat.py` 规范月份宏、重音字母、Unicode 标点与普通文本特殊字符。已有数学片段、TeX 转义与 URL／DOI 标识不重复转义。除用户明确列出的三个正式版本字段外，不推断或补写文献元数据。字段修改前后记录到 `formatting.json`，引用键关系写入 `key-map.csv`。导出不会修改已保存的下载原文。
 
 默认 `include_unfetched=true`：未抓取成功的行从已解析输入中保留全部字段，展开输入字符串宏，并经过同一格式流程；输出注释和 `export-summary.json` 标明输入来源。下载状态与 HTTP 日志不变。关闭该选项时省略这些行。`downloaded.bib` 始终仅含成功条目，不会把被拒绝的响应作为后备内容。
+
+`arxiv_display.py` 只从明确 arXiv 字段、DOI 或链接中读取已有编号，交给格式层复制到传统样式会打印的 `note`。已有可显示编号不重复；冲突或缺失记录为手动处理项。该流程不受缩写／URL 开关影响，也不改写来源原文。
+
+`publication_versions.py` 以原始引用键和完整规范化题名共同匹配三个明确指定的正式版本，记录所用字段与官方来源链接。这三个条目不额外添加 arXiv 备注。会议缩写使用固定表，只有表内会议论文删除重复出版社；章节不自动改类型，书籍、章节、技术报告和 SAE 出版社保留。
 
 输入重复引用键会获得唯一内部键；合并时再次处理来源键冲突。不同输入对应同一篇文章时不会去重。
 
@@ -75,6 +79,8 @@ SQLite 使用 WAL。每次条目变化持久化任务 JSON，事件按任务内�
 | `storage.py` | SQLite 任务、响应、缓存、事件 |
 | `formatting.py` | 在原文上定位字段并执行用户选定的修改 |
 | `latex_compat.py` | 合并导出必经的 BibTeX／LaTeX 语法兼容处理 |
+| `arxiv_display.py` | 提取明确 arXiv 编号并选择可显示字段，报告缺失或冲突 |
+| `publication_versions.py` | 三个明确指定的正式版本字段、键与题名匹配、来源链接 |
 | `abbreviations.py` | 缩写定义、明确别名、会议名称归一化 |
 | `exports.py` | 合并文件、报告与 ZIP |
 | `app.py` | FastAPI、本机访问约束、SSE、静态资源 |

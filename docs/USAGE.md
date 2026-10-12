@@ -51,7 +51,7 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 
 点击成功条目可查看来源返回的 BibTeX。这里展示原文；URL 与缩写格式选项以及自动 LaTeX 兼容处理作用于“预览合并结果”和合并文件下载。
 
-未抓取条目会显示具体原因，点击可查看每个来源的错误和同标题待选记录。完整抓取包中的 `retrieval-review.md` 汇总未抓取清单；它与 TPAMI 格式的 `manual-review.md` 各自保留。限流／网络问题可再次点击重试，版本选择与实质标题差异由使用者决定后修改输入再导入，程序不自动替换。
+未抓取条目会显示具体原因，点击可查看每个来源的错误和同标题待选记录。完整抓取包中的 `retrieval-review.md` 汇总未抓取清单。限流／网络问题可再次点击重试，版本选择与实质标题差异由使用者决定后修改输入再导入，程序不自动替换。
 
 “原文”指 HTTP 解压后按 UTF-8 解码的文本，不是包含 HTTP 头的网络抓包。正文哈希使用该文本重新编码后的 UTF-8 字节。收到 HTML 验证页或非 BibTeX 内容时会记录失败。
 
@@ -75,10 +75,11 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 | --- | --- |
 | 保留 URL 字段 | 关闭时，仅删除顶层 `url` 字段，大小写不敏感；不会删除注释、正文或其他字段里的网址 |
 | 使用期刊／会议缩写 | 对 `journal`、`journaltitle`、`booktitle` 使用固定映射；未匹配名称保持原样 |
-| TPAMI 精简格式 | 默认关闭；接管 URL／缩写选项，使用规范词语缩写、精简长作者列表和可选会议信息，保留在线文献链接；[详细规则](TPAMI.md) |
 | 保留未抓取条目的输入内容 | 默认开启，失败／等待／处理中的条目保留输入字段和引用键，并标记为输入来源；关闭则只导出成功条目 |
 
-启用缩写后生成 `journal = {IEEE Trans. Pattern Anal. Mach. Intell.}`、`booktitle = {CVPR}` 这样的文本值。完整包附 `abbreviations.bib`，但合并文件不依赖该宏文件。重复定义处理见[缩写说明](ABBREVIATIONS.md)。
+启用缩写后生成 `journal = {IEEE Trans. Pattern Anal. Mach. Intell.}`、`booktitle = {Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}` 这样的文本值。只对清单内会议论文删除重复出版社，书籍、章节、技术报告和 SAE 条目保留出版社。作者、题名、年份、月份与页码保留。完整包附 `abbreviations.bib`，合并文件不依赖该宏文件，见[缩写说明](ABBREVIATIONS.md)。
+
+来源中明确的 arXiv 编号自动写入 `note`，原 `eprint` 保留；关闭 URL 和开启缩写也会显示。编号缺失或冲突不猜测，完整包附 `formatting-review.md` 供手动处理。三个指定键与题名共同匹配时采用用户提供的正式会议字段，并不再额外添加 arXiv 备注，见[导出标准](LATEX.md)。极简模式已移除，旧设置不再截断作者或删除月份。
 
 合并文件默认按输入顺序保留全部条目及输入引用键。抓取成功使用来源 BibTeX；未抓取条目使用输入内容并加注释，不使用被拒绝的响应，不计为抓取成功。两类条目均应用格式选项及 LaTeX 兼容处理。不同输入条目对应同一篇文章时仍独立导出；程序只消除引用键冲突，不做论文去重。冲突键添加 `_2`、`_3` 等后缀。
 
@@ -100,7 +101,8 @@ Windows 的 `start.bat` 支持相同参数，例如 `start.bat --port 8877`。�
 | `key-map.csv` | 输入键、来源键、导出键之间的对应关系 |
 | `results.json` | 任务、设置、条目原文与结果 |
 | `formatting.json` | 当前格式选项、URL 删除、缩写替换及 LaTeX 兼容处理的字段修改前后记录 |
-| `manual-review.md` | TPAMI 模式下的格式缺口与未识别名称清单，供人工精修；不自动补写字段 |
+| `retrieval-review.md` | 未抓取条目、实际失败原因及待选记录 |
+| `formatting-review.md` | 仅在 arXiv 编号缺失或冲突时附带，供人工处理；不猜测编号 |
 | `abbreviations.bib` | 启用缩写时附带的 107 个参考定义 |
 | `README.txt` | 此次导出包内容说明 |
 
@@ -127,7 +129,6 @@ uv run --frozen --no-dev bibtex-fetch-cli references.bib --data-dir ./data
 | `--source-keys` | 关闭 | 使用来源引用键，仍处理冲突 |
 | `--no-url` | 关闭 | 从合并文件移除 URL 字段 |
 | `--abbreviate` | 关闭 | 启用内置缩写表 |
-| `--tpami-minimal` | 关闭 | TPAMI 精简格式，优先于 `--no-url` 和 `--abbreviate`，保留在线文献所需链接 |
 | `--downloaded-only` | 关闭 | 合并文件只导出抓取成功条目；默认保留并标记未抓取输入 |
 | `--mailto` | 空 | Crossref 联系邮箱，可选 |
 | `--data-dir` | 本机用户数据目录 | 任务与缓存存储位置 |
