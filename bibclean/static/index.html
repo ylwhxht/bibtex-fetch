@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="逐条检索、下载原站 BibTeX、汇总，并展示真实的网络请求过程。"
+    />
+    <title>BibTeX Fetch · 文献抓取控制台</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a href="/" class="brand"
+        ><span class="brand-mark">b<span>↓</span></span
+        ><span>BibTeX<small>FETCH</small></span></a
+      >
+      <div class="workspace-label">文献工具 / LOCAL WORKSPACE</div>
+      <button class="nav-item active" id="new-workspace">
+        <span>↳</span>新建抓取任务<span class="nav-arrow">＋</span>
+      </button>
+      <button class="nav-item" id="help-open">
+        <span>⌘</span>抓取规则与使用说明
+      </button>
+      <div class="history-heading">
+        <span>本地任务</span
+        ><button
+          class="icon-button"
+          id="refresh-history"
+          aria-label="刷新本地任务"
+        >
+          ↻
+        </button>
+      </div>
+      <div id="history" class="history"><p class="muted">暂无任务</p></div>
+      <div class="sidebar-bottom">
+        <div class="local-pill">
+          <span class="live-dot"></span>本机运行 · 自动保存
+        </div>
+        <p>任务和抓取记录保存在本机。检索时向选定来源发送文章标识或标题。</p>
+        <span class="version">BIBTEX FETCH / 2.0.1</span>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topline">
+        <span>研究工具 <span class="breadcrumb">/</span> 文献抓取控制台</span
+        ><span class="quiet-tag">CODE → SOURCE → BIBTEX</span>
+      </div>
+      <p id="server-notice" class="server-notice" role="status" hidden></p>
+      <header class="page-heading">
+        <div>
+          <div class="eyebrow">EVERY REQUEST. EVERY RESPONSE.</div>
+          <h1>逐条查找，原文抓取<span>。</span></h1>
+          <p>从一份 BibTeX 出发，下载来源返回的条目，再汇总为一份文献库。</p>
+        </div>
+        <div class="source-seal">
+          <span>↧</span>
+          <div>原站 BibTeX 直接下载<small>纯代码执行 · 全过程可见</small></div>
+        </div>
+      </header>
+      <section class="stats" aria-label="抓取统计">
+        <div class="stat">
+          <div class="stat-label">输入条目<span>01</span></div>
+          <strong id="stat-total">0</strong><small>按输入顺序逐条处理</small>
+        </div>
+        <div class="stat">
+          <div class="stat-label">
+            已抓取<span class="mini-dot green"></span>
+          </div>
+          <strong id="stat-success" class="green-text">0</strong
+          ><small>已保存来源返回原文</small>
+        </div>
+        <div class="stat">
+          <div class="stat-label">
+            未抓取成功<span class="mini-dot amber"></span>
+          </div>
+          <strong id="stat-failed">0</strong
+          ><small>保留原条目，可再次尝试</small>
+        </div>
+        <div class="stat">
+          <div class="stat-label">实际 HTTP 请求<span>↗</span></div>
+          <strong id="stat-requests">0</strong
+          ><small>包括跳转和重试，不计缓存</small>
+        </div>
+      </section>
+      <div class="work-grid">
+        <section class="import-panel panel">
+          <div class="section-header">
+            <h2><span class="step">1</span>导入 BibTeX</h2>
+            <button class="text-button" id="load-sample">试用示例 ↗</button>
+          </div>
+          <label class="dropzone" id="dropzone" for="file-input"
+            ><span class="upload-icon">↑</span
+            ><strong>拖入你的 .bib 文件</strong
+            ><span>或点击选择 · UTF-8 · 总计 ≤ 5 MB</span
+            ><input type="file" id="file-input" accept=".bib,.txt" multiple
+          /></label>
+          <div class="file-label" id="file-label">未选择文件</div>
+          <div class="input-label">
+            <label for="bib-input">或直接粘贴 BibTeX</label
+            ><button class="text-button muted" id="clear-input">清空</button>
+          </div>
+          <textarea
+            id="bib-input"
+            spellcheck="false"
+            aria-label="BibTeX 文献内容"
+            placeholder="@article{your_reference,&#10;  title = {...},&#10;  doi   = {...}&#10;}"
+          ></textarea>
+          <details class="source-settings" open>
+            <summary>新任务的来源与选项 <span>⌄</span></summary>
+            <div class="source-list">
+              <label
+                ><input
+                  type="checkbox"
+                  name="source"
+                  value="crossref"
+                  checked
+                /><span>Crossref<small>DOI / 标题检索</small></span
+                ><span class="source-indicator">.bib</span></label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="source"
+                  value="datacite"
+                  checked
+                /><span>DataCite<small>DOI 下载补充</small></span
+                ><span class="source-indicator">.bib</span></label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="source"
+                  value="arxiv"
+                  checked
+                /><span>arXiv<small>编号 / 标题检索</small></span
+                ><span class="source-indicator">.bib</span></label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="source"
+                  value="dblp"
+                  checked
+                /><span>DBLP<small>记录链接 / 标题检索</small></span
+                ><span class="source-indicator">.bib</span></label
+              >
+            </div>
+            <label class="option"
+              ><input
+                type="checkbox"
+                id="keep-keys"
+                checked
+              />合并文件沿用输入引用键</label
+            >
+            <label class="option"
+              ><input type="checkbox" id="use-cache" />允许使用 24
+              小时内的下载缓存</label
+            >
+            <label class="email-label" for="mailto"
+              >联系邮箱 <span>可选，用于来源 API 识别</span></label
+            ><input
+              id="mailto"
+              type="email"
+              placeholder="you@university.edu"
+              autocomplete="email"
+            />
+          </details>
+          <button class="button primary wide" id="import-button">
+            读取文章列表 <span>→</span>
+          </button>
+          <p class="subtle-note">先读取列表，再点击右侧开始抓取。</p>
+        </section>
+        <div class="right-column">
+          <section class="results-panel panel">
+            <div class="section-header results-heading">
+              <div>
+                <h2><span class="step">2</span>逐条检索与抓取</h2>
+                <div class="job-label" id="job-label">等待导入文献</div>
+              </div>
+              <span class="status-badge neutral" id="job-state">未开始</span>
+            </div>
+            <div class="run-bar">
+              <span id="progress-text" aria-live="polite"
+                >导入后可查看全部文章列表。</span
+              >
+              <div class="run-actions">
+                <button
+                  class="button secondary small"
+                  id="cancel-button"
+                  hidden
+                >
+                  停止抓取</button
+                ><button
+                  class="button primary small"
+                  id="start-button"
+                  disabled
+                >
+                  开始抓取 →
+                </button>
+              </div>
+            </div>
+            <progress
+              id="progress"
+              value="0"
+              max="100"
+              aria-label="抓取进度"
+            ></progress>
+            <div class="table-toolbar">
+              <div class="filters" role="group" aria-label="筛选文献">
+                <button class="filter active" data-filter="all">全部</button
+                ><button class="filter" data-filter="success">已抓取</button
+                ><button class="filter" data-filter="failed">失败</button>
+              </div>
+              <input
+                id="search"
+                type="search"
+                placeholder="搜索标题 / 引用键"
+                aria-label="搜索标题或引用键"
+              />
+            </div>
+            <div class="records" id="records">
+              <div class="empty-state">
+                <span class="empty-icon">{ b }</span>
+                <h3>准备好你的文章列表</h3>
+                <p>
+                  每条文章都会展示检索来源和抓取状态。<br />点击结果即可阅读下载的
+                  BibTeX 原文。
+                </p>
+                <div class="workflow">
+                  <span>01 读取</span><i>→</i><span>02 抓取</span><i>→</i
+                  ><span>03 汇总</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="console-panel" aria-label="真实抓取过程">
+            <div class="console-heading">
+              <h2><span class="terminal-mark">›_</span>真实抓取过程</h2>
+              <span class="connection" id="connection"><i></i>等待任务</span>
+            </div>
+            <div class="console-toolbar">
+              <select id="log-row" aria-label="按条目筛选抓取日志">
+                <option value="all">全部条目</option></select
+              ><label
+                ><input
+                  type="checkbox"
+                  id="auto-scroll"
+                  checked
+                />跟随新日志</label
+              ><button id="download-log" disabled>下载日志 ↧</button>
+            </div>
+            <div
+              class="log-stream"
+              id="log-stream"
+              tabindex="0"
+              aria-label="HTTP 请求与响应日志"
+            >
+              <div class="log-empty">
+                <span>●</span> 等待实际请求<br /><small
+                  >查询词、请求地址、返回状态、耗时与下载原文会在这里实时显示。</small
+                >
+              </div>
+            </div>
+            <div class="console-foot">
+              <span id="log-count">0 条过程记录</span
+              ><span>HTTP / SEARCH / BIBTEX</span>
+            </div>
+          </section>
+          <section class="export-bar panel" aria-label="导出选项与下载">
+            <div class="export-intro">
+              <strong id="export-label">等待抓取结果</strong
+              ><span>完整包包含每条原文、HTTP 响应和过程日志</span>
+            </div>
+            <fieldset class="export-options">
+              <legend>导出选项</legend>
+              <label class="option"
+                ><input type="checkbox" id="include-url" checked />保留 URL
+                字段</label
+              >
+              <label class="option"
+                ><input
+                  type="checkbox"
+                  id="abbreviate"
+                />使用期刊／会议缩写</label
+              >
+              <button class="text-button" type="button" id="show-abbreviations">
+                查看缩写表 ↗
+              </button>
+            </fieldset>
+            <p class="export-hint" id="export-hint">
+              保留 URL · 保留来源名称。合并导出自动处理 LaTeX
+              兼容格式，抓取原文另存。
+            </p>
+            <div class="export-actions">
+              <button
+                class="button secondary small"
+                id="preview-export"
+                disabled
+              >
+                预览合并结果</button
+              ><button class="button secondary small" id="export-zip" disabled>
+                完整抓取包 ↓</button
+              ><button class="button primary small" id="export-bib" disabled>
+                合并 BibTeX ↓
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <footer class="page-footer">
+        <span>来源原文留存 · 导出格式可选 · 无生成式 AI</span
+        ><button class="text-button" id="about-link">查看抓取规则 ↗</button>
+      </footer>
+    </main>
+    <dialog id="detail-dialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">SOURCE RESPONSE</span>
+          <h2 id="detail-heading">下载原文</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="关闭详情">
+          ×
+        </button>
+      </div>
+      <div id="detail-content"></div>
+    </dialog>
+    <dialog id="help-dialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">HOW IT FETCHES</span>
+          <h2>从输入到汇总</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="关闭使用说明">
+          ×
+        </button>
+      </div>
+      <div class="help-content">
+        <ol>
+          <li>
+            <strong>读取所有条目。</strong>输入 .bib
+            文件或粘贴文本，程序解析文章列表并保留输入顺序。单次支持 3,000 条、5
+            MB。
+          </li>
+          <li>
+            <strong>优先使用已有标识。</strong>arXiv 编号直取 arXiv BibTeX；DOI
+            依次尝试 Crossref、DataCite；DBLP 记录链接直取 .bib。
+          </li>
+          <li>
+            <strong>再按标题搜索。</strong>依次请求已启用的
+            Crossref、DBLP、arXiv，每个来源最多取 5
+            个搜索结果。只选择标题一致的唯一记录，没有同名结果或有同名歧义时继续下一来源，不取首条兜底。
+          </li>
+          <li>
+            <strong>检查下载后的标题。</strong
+            >输入提供了标题时，所有下载路径都必须让来源 BibTeX
+            的标题与输入一致，缺失或不一致就继续下一来源。仅统一大小写、空格、展示格式和末尾句点，保留数字、关键符号、副标题及公式。只有标识符、没有输入标题时，日志会明确显示未进行标题比较。
+          </li>
+          <li>
+            <strong>汇总并选择导出格式。</strong>默认沿用输入引用键，并自动处理
+            LaTeX 兼容格式。导出时可取消
+            URL，或按缩写表替换期刊／会议名。重复引用键添加后缀，原文另存。
+          </li>
+        </ol>
+        <p>
+          日志来自实际执行过程。搜索结果、选择规则、HTTP
+          请求、响应状态、等待、重试、跳转及下载内容都可查看。默认关闭缓存；启用后会明确标记缓存命中和原抓取时间。
+        </p>
+        <p>
+          程序执行检索、标题匹配与下载，不评估文献真假，不做评分或人工审批。标题匹配不代表作者、年份和版本已核验。来源响应原样保存，被拒绝的响应也可在日志中查看。
+        </p>
+        <div class="help-callout">
+          <strong>导出内容</strong><br /><code>merged.bib</code>
+          合并下载结果<br /><code>entries/</code> 每条未经改动的来源 BibTeX<br /><code
+            >failed.bib</code
+          >
+          抓取失败或未处理的输入条目<br /><code>process.jsonl</code>
+          完整过程日志<br /><code>responses/</code> 实际 HTTP 响应正文<br /><code
+            >key-map.csv</code
+          >
+          输入键、来源键与导出键
+        </div>
+        <p>
+          导出选项对已有任务即时生效，无需重新抓取。取消 URL 只移除合并文件中的
+          <code>url</code> 字段，保留 DOI。缩写按固定全称／别名表处理
+          <code>journal</code>、<code>journaltitle</code> 和
+          <code>booktitle</code>，未匹配名称原样保留。缩写直接写成
+          <code>booktitle = {CVPR}</code>
+          这样的文本值。重复缩写键以最后定义为准：TOG 使用 ACM TOG；The Visual
+          Computer 全称使用 TVCOMP 的 Vis. Comput.。完整包中的
+          <code>formatting.json</code> 记录每次字段调整。
+        </p>
+        <p>
+          合并预览、BibTeX 下载和 ZIP 中的 merged.bib 都自动处理 LaTeX
+          兼容格式，无需额外勾选： 将 June／July／Sept
+          等月份写为文本值，将重音字母写为带保护括号的 TeX 命令，
+          并转义普通文本中的下划线等特殊字符。已有数学公式与 URL／DOI
+          标识保持原样。 条目详情、entries/ 与 responses/ 仍提供抓取原文。
+        </p>
+        <p>
+          停止后可继续未完成条目；再次抓取会重试失败条目。旧版本已成功的记录不会自动重新检查标题，需要重新导入建立新任务。来源设置用于新建任务，导出选项会在当前浏览器记住。当前任务和日志保存在本机用户数据目录，实际路径会在启动窗口显示；刷新页面后可从左侧打开历史任务。
+        </p>
+        <div class="help-links">
+          <a
+            href="https://www.crossref.org/documentation/retrieve-metadata/content-negotiation/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Crossref 文档 ↗</a
+          ><a
+            href="https://info.arxiv.org/help/api/user-manual.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >arXiv 文档 ↗</a
+          >
+        </div>
+      </div>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
