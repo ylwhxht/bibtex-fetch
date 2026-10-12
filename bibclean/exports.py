@@ -64,7 +64,9 @@ def export_files(job, store, *, include_url=None, abbreviate=None, include_unfet
             # Never substitute a rejected response or fabricate missing data.
             raw = render_entries([dict(row["original"], ID=key)])
         if origin != "omitted":
-            formatted, changes = format_bibtex(raw, **formatting_options)
+            formatted, changes = format_bibtex(
+                raw, input_key=row["original_key"], **formatting_options
+            )
             if success and key != row["source_key"]:
                 formatted = rewrite_key(formatted, key)
             if success:
@@ -174,9 +176,11 @@ def export_files(job, store, *, include_url=None, abbreviate=None, include_unfet
                 "entries/: exact UTF-8 source response text, without citation-key changes.\n"
                 "Citation keys may change in merged.bib; see key-map.csv. Duplicate keys gain suffixes.\n"
                 f"Export options: include_url={options['include_url']}, abbreviate={options['abbreviate']}, include_unfetched={options['include_unfetched']}.\n"
-                "Existing explicit arXiv identifiers are also exposed in howpublished/note for classic BibTeX styles, independently of URL/abbreviation options.\n"
+                "Existing explicit arXiv identifiers are also exposed in note for classic BibTeX styles, independently of URL/abbreviation options.\n"
                 "Missing or conflicting arXiv identifiers are not guessed; see formatting-review.md.\n"
                 "Optional formatting removes URL fields and/or replaces known journal/booktitle names with the supplied abbreviations.\n"
+                "With abbreviations enabled, only listed conference papers lose redundant publisher fields; books, chapters, reports and SAE entries retain them.\n"
+                "Three explicitly listed key-and-title publication corrections use supplied official fields; see formatting.json for exact edits and sources.\n"
                 "Abbreviations are written as braced text values, without external string-macro dependencies.\n"
                 "All merged exports apply LaTeX compatibility: full month tokens, supported Unicode text, and special text characters.\n"
                 "Existing math, commands, URL/DOI identifiers and raw responses are retained. Unknown Unicode and external macros may need template support.\n"
@@ -243,7 +247,7 @@ def export_files(job, store, *, include_url=None, abbreviate=None, include_unfet
         lines = [
             "# 导出格式：需手动调整的项目",
             "",
-            "以下条目的 arXiv 编号缺失或冲突，程序保留现有字段，没有猜测编号。",
+            "以下条目存在 arXiv 编号缺失／冲突或指定发表版本的题名不匹配，程序没有猜测这些信息。",
             "原始输入与来源分别保存在 original.bib、entries/ 中；格式调整见 formatting.json。",
             "",
         ]

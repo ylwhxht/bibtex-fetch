@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import re
 
-from .abbreviations import CONFERENCES, abbreviation
-from .arxiv_display import display_field, identifier
+from .abbreviations import CONFERENCE_TITLES, abbreviation
+from .arxiv_display import display_field, identifier, labelled_ids
 from .bibliography import _blocks, arxiv_of, doi_of, parse_bib
 from .latex_compat import compatible_expression
+from .publication_versions import publication_version
 
 
 def _fields(raw, start, end):
@@ -89,7 +90,7 @@ def _preprint_repository(values):
     return "arXiv:" + ident if ident else ""
 
 
-def format_bibtex(raw, *, include_url=True, abbreviate=False):
+def format_bibtex(raw, *, include_url=True, abbreviate=False, input_key=None):
     blocks = list(_blocks(raw, positions=True))
     # Parse a semantic view without top-level field comments, which the
     # upstream parser can mistake for malformed entries. Edits still target
@@ -117,15 +118,24 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
         values = next(parsed)["original"]
         fields = list(_fields(raw, start, end))
         expressions = {field: raw[a:b] for field, _, _, a, b, _ in fields}
-        venue = abbreviation(values.get("booktitle", ""), expressions.get("booktitle", ""))
+        publication, publication_issue = publication_version(values, input_key)
+        overrides = publication["fields"] if publication else {}
+        for issue in [publication_issue]:
+            if issue:
+                changes.append({"field": "ENTRYTYPE", "action": "manual_review", "reason": issue})
+        effective = {**values, **overrides}
+        venue = abbreviation(
+            effective.get("booktitle", ""),
+            "" if "booktitle" in overrides else expressions.get("booktitle", ""),
+        )
         repository = _preprint_repository(values)
-        arxiv_id, arxiv_issue = identifier(values)
+        arxiv_id, arxiv_issue = identifier(values) if not publication else ("", "")
         if arxiv_issue:
             changes.append({"field": "eprint", "action": "manual_review", "reason": arxiv_issue})
         new_type = typ
         reason = ""
-        if typ in {"inbook", "incollection"} and venue and venue[0] in CONFERENCES:
-            new_type, reason = "inproceedings", "booktitle matches a known conference"
+        if publication:
+            new_type, reason = "inproceedings", "explicitly requested official publication version"
         elif (
             typ == "article"
             and (repository or arxiv_id)
@@ -147,12 +157,40 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                 }
             )
         removed = {"url"} if not include_url else set()
+        if (
+            abbreviate
+            and new_type in {"inproceedings", "conference"}
+            and venue
+            and venue[0] in CONFERENCE_TITLES
+        ):
+            removed.add("publisher")
+        if publication:
+            # Remove only an arXiv-only display locator from an older export;
+            # retain eprint/archivePrefix, links and all substantive notes.
+            for field in ("note", "howpublished"):
+                value = values.get(field, "").replace("{", "").replace("}", "").strip()
+                ids = labelled_ids(value)
+                if len(ids) == 1 and re.fullmatch(r"arxiv\s*:\s*" + re.escape(ids[0]), value, re.I):
+                    removed.add(field)
         locator_field = display_field(values, new_type, arxiv_id) if arxiv_id else ""
         locator = "{{arXiv}:" + arxiv_id + "}"
+        additions = []
+        for field, value in overrides.items():
+            if field not in expressions:
+                replacement = "{" + value + "}"
+                additions.append(f"\n  {field} = {replacement},")
+                changes.append(
+                    {
+                        "field": field,
+                        "action": "published_version",
+                        "before": "",
+                        "after": replacement,
+                        "reason": "explicitly requested official publication version",
+                        "source": publication["source"],
+                    }
+                )
         if locator_field and locator_field not in expressions:
-            head = re.match(r"@\s*[\w-]+\s*[{(][^,]*,", raw[start:end])
-            position = start + head.end()
-            edits.append((position, position, f"\n  {locator_field} = {locator},"))
+            additions.append(f"\n  {locator_field} = {locator},")
             changes.append(
                 {
                     "field": locator_field,
@@ -162,6 +200,10 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                     "reason": "print existing arXiv identifier in classic BibTeX styles",
                 }
             )
+        if additions:
+            head = re.match(r"@\s*[\w-]+\s*[{(][^,]*,", raw[start:end])
+            position = start + head.end()
+            edits.append((position, position, "".join(additions)))
         for field, removal_start, removal_end, value_start, value_end, comments in fields:
             expression = raw[value_start:value_end]
             replacement = expression
@@ -173,9 +215,29 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                         "action": "remove",
                         "before": expression,
                         "after": "",
+                        "reason": (
+                            "listed conference; publisher redundant with standardized proceedings title"
+                            if field == "publisher"
+                            else "official conference version uses its venue instead of an arXiv-only note"
+                            if publication and field in {"note", "howpublished"}
+                            else "URL option disabled"
+                        ),
                     }
                 )
                 continue
+            if field in overrides:
+                replacement = "{" + overrides[field] + "}"
+                if replacement != expression:
+                    changes.append(
+                        {
+                            "field": field,
+                            "action": "published_version",
+                            "before": expression,
+                            "after": replacement,
+                            "reason": "explicitly requested official publication version",
+                            "source": publication["source"],
+                        }
+                    )
             if field == locator_field:
                 replacement = (
                     expression + " # {; " + locator[1:-1] + "}" if values.get(field) else locator
@@ -189,7 +251,11 @@ def format_bibtex(raw, *, include_url=True, abbreviate=False):
                         "reason": "print existing arXiv identifier in classic BibTeX styles",
                     }
                 )
-            if abbreviate and field in {"journal", "journaltitle", "booktitle"}:
+            if (
+                abbreviate
+                and field in {"journal", "journaltitle", "booktitle"}
+                and field not in overrides
+            ):
                 match = abbreviation(values.get(field, ""), expression)
                 if match:
                     macro, short = match

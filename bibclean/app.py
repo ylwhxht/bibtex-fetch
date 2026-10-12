@@ -125,8 +125,8 @@ async def health():
         "title_matching": "strict-v2",
         "retrieval_diagnostics": "v1",
         "complete_export": "v1",
-        "export_formatting": "v3",
-        "arxiv_display": "v1",
+        "export_formatting": "v4",
+        "arxiv_display": "v2",
     }
 
 

@@ -1,8 +1,4 @@
-"""Deterministic venue aliases and the user's exact abbreviation spellings.
-
-Repeated keys use the last supplied value (TOG = ACM TOG). No fuzzy matching.
-Keep these spellings even where another style guide would abbreviate differently.
-"""
+"""Deterministic venue aliases and explicit reference-style abbreviations."""
 
 from __future__ import annotations
 
@@ -49,10 +45,10 @@ VENUES = [
     ),
     (
         "TCSVT",
-        "IEEE Trans. Circuit Syst. Video Technol.",
+        "IEEE Trans. Circuits Syst. Video Technol.",
         [
             "IEEE Transactions on Circuits and Systems for Video Technology",
-            "IEEE Trans. Circuits Syst. Video Technol.",
+            "IEEE Trans. Circuit Syst. Video Technol.",
         ],
     ),
     (
@@ -250,7 +246,7 @@ VENUES = [
     ),
     ("PR", "Pattern Recognit.", ["Pattern Recognition"]),
     ("ACCESS", "IEEE Access", []),
-    ("RAL", "IEEE RA-L", ["IEEE Robotics and Automation Letters", "IEEE Robot. Autom. Lett."]),
+    ("RAL", "IEEE Robot. Autom. Lett.", ["IEEE Robotics and Automation Letters", "IEEE RA-L"]),
     ("SENSJ", "IEEE Sensors J.", ["IEEE Sensors Journal"]),
     ("TII", "IEEE Trans. Ind. Informat.", ["IEEE Transactions on Industrial Informatics"]),
     ("TIM", "IEEE Trans. Instrum. Meas.", ["IEEE Transactions on Instrumentation and Measurement"]),
@@ -361,57 +357,69 @@ VENUES = [
     ),
 ]
 
-CONFERENCES = {
-    "ACCV",
-    "AAAI",
-    "CVPRW",
-    "CVPR",
-    "ICCV",
-    "ECCV",
-    "NIPS",
-    "ICPR",
-    "BMVC",
-    "ACMMM",
-    "ICME",
-    "ICASSP",
-    "ICIP",
-    "ICLR",
-    "IROS",
-    "ICRA",
-    "IJCAI",
-    "WACV",
-    "EDGE",
-    "ICCVW",
-    "IV",
-    "ITSC",
-    "ICPRS",
-    "ICVES",
-    "ICDL",
-    "ICTC",
-    "ICECET",
-    "NNICE",
-    "INDIN",
-    "SECON",
-    "ISAS",
-    "CCC",
-    "RadarConf",
-    "VTCSpring",
-    "VTCFall",
-    "ICONIP",
-    "ECCVW",
-    "GeMiC",
-    "CRV",
-    "MCSoC",
-    "ICCRI",
-    "ROBIO",
-    "VCIP",
-    "CSCWD",
-    "IECON",
-    "ICAUS",
-    "ECSA",
-    "CoRL",
-    "EuRAD",
+CONFERENCE_TITLES = {
+    "ACCV": "Proc. Asian Conf. Comput. Vis. (ACCV)",
+    "AAAI": "Proc. AAAI Conf. Artif. Intell. (AAAI)",
+    "CVPRW": "Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. Workshops (CVPRW)",
+    "CVPR": "Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)",
+    "ICCV": "Proc. IEEE/CVF Int. Conf. Comput. Vis. (ICCV)",
+    "ECCV": "Proc. Eur. Conf. Comput. Vis. (ECCV)",
+    "NIPS": "Adv. Neural Inf. Process. Syst. (NeurIPS)",
+    "ICPR": "Proc. Int. Conf. Pattern Recognit. (ICPR)",
+    "BMVC": "Proc. Brit. Mach. Vis. Conf. (BMVC)",
+    "ACMMM": "Proc. ACM Int. Conf. Multimedia (ACM MM)",
+    "ICME": "Proc. IEEE Int. Conf. Multimedia Expo (ICME)",
+    "ICASSP": "Proc. IEEE Int. Conf. Acoust., Speech Signal Process. (ICASSP)",
+    "ICIP": "Proc. IEEE Int. Conf. Image Process. (ICIP)",
+    "ICLR": "Int. Conf. Learn. Represent. (ICLR)",
+    "IROS": "Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS)",
+    "ICRA": "Proc. IEEE Int. Conf. Robot. Autom. (ICRA)",
+    "IJCAI": "Proc. Int. Joint Conf. Artif. Intell. (IJCAI)",
+    "WACV": "Proc. IEEE/CVF Winter Conf. Appl. Comput. Vis. (WACV)",
+    "EDGE": "Proc. ACM/IEEE Symp. Edge Comput. (EDGE)",
+    "ICCVW": "Proc. IEEE/CVF Int. Conf. Comput. Vis. Workshops (ICCVW)",
+    "IV": "Proc. IEEE Intell. Veh. Symp. (IV)",
+    "ITSC": "Proc. IEEE Int. Conf. Intell. Transp. Syst. (ITSC)",
+    "ICPRS": "Proc. Int. Conf. Pattern Recognit. Syst. (ICPRS)",
+    "ICVES": "Proc. IEEE Int. Conf. Veh. Electron. Saf. (ICVES)",
+    "ICDL": "Proc. IEEE Int. Conf. Develop. Learn. (ICDL)",
+    "ICTC": "Proc. Int. Conf. Inf. Commun. Technol. Converg. (ICTC)",
+    "ICECET": "Proc. Int. Conf. Electr., Comput. Energy Technol. (ICECET)",
+    "NNICE": "Proc. Int. Conf. Neural Netw., Inf. Commun. Eng. (NNICE)",
+    "INDIN": "Proc. IEEE Int. Conf. Ind. Informat. (INDIN)",
+    "SECON": "Proc. IEEE Int. Conf. Sens., Commun. Netw. (SECON)",
+    "ISAS": "Proc. Int. Symp. Auton. Syst. (ISAS)",
+    "CCC": "Proc. Chin. Control Conf. (CCC)",
+    "RadarConf": "Proc. IEEE Radar Conf. (RadarConf)",
+    "VTCSpring": "Proc. IEEE Veh. Technol. Conf. (VTC-Spring)",
+    "VTCFall": "Proc. IEEE Veh. Technol. Conf. (VTC-Fall)",
+    "ICONIP": "Proc. Int. Conf. Neural Inf. Process. (ICONIP)",
+    "ECCVW": "Proc. Eur. Conf. Comput. Vis. Workshops (ECCVW)",
+    "GeMiC": "Proc. German Microw. Conf. (GeMiC)",
+    "CRV": "Proc. Conf. Comput. Robot Vis. (CRV)",
+    "MCSoC": "Proc. IEEE Int. Symp. Embedded Multicore/Many-core Syst.-on-Chip (MCSoC)",
+    "ICCRI": "Proc. Int. Conf. Control, Robot. Informat. (ICCRI)",
+    "ROBIO": "Proc. IEEE Int. Conf. Robot. Biomimetics (ROBIO)",
+    "VCIP": "Proc. IEEE Int. Conf. Vis. Commun. Image Process. (VCIP)",
+    "CSCWD": "Proc. Int. Conf. Comput. Supported Cooperative Work Design (CSCWD)",
+    "IECON": "Proc. Annu. Conf. IEEE Ind. Electron. Soc. (IECON)",
+    "ICAUS": "Proc. Int. Conf. Auton. Unmanned Syst. (ICAUS)",
+    "ECSA": "Proc. Int. Electron. Conf. Sensors Appl. (ECSA)",
+    "CoRL": "Proc. Conf. Robot Learn. (CoRL)",
+    "EuRAD": "Proc. Eur. Radar Conf. (EuRAD)",
 }
+
+# Keep former acronym-only outputs as aliases for saved jobs and old exports.
+CONFERENCE_ACRONYMS = {
+    key: {normalized(key), normalized(short)}
+    for key, short, _ in VENUES
+    if key in CONFERENCE_TITLES
+}
+VENUES = [
+    (key, CONFERENCE_TITLES.get(key, short), [short, *aliases]) for key, short, aliases in VENUES
+]
+
+CONFERENCES = set(CONFERENCE_TITLES)
 BY_KEY = {key.casefold(): (key, short) for key, short, _ in VENUES}
 ALIASES = {
     normalized(alias): (key, short)
@@ -420,9 +428,6 @@ ALIASES = {
 }
 CONFERENCE_ALIASES = {
     alias: record for alias, record in ALIASES.items() if record[0] in CONFERENCES
-}
-CONFERENCE_ACRONYMS = {
-    key: {normalized(key), normalized(short)} for key, short, _ in VENUES if key in CONFERENCES
 }
 
 
@@ -442,10 +447,14 @@ def abbreviation(value, expression=""):
     name = re.sub(r"\s+", " ", name).strip()
     # Explicit year-bearing conference acronyms; keep the VTC season and year.
     vtc = re.fullmatch(
-        r"(?:(?:ieee )?vehicular technology conference )?vtc((?:19|20)\d{2}) (spring|fall)", name
+        r"(?:(?:ieee )?(?:vehicular technology conference|veh technol conf) )?vtc((?:19|20)\d{2}) (spring|fall)",
+        name,
     )
     if vtc:
-        return ("VTCSpring" if vtc[2] == "spring" else "VTCFall", f"VTC{vtc[1]}-{vtc[2].title()}")
+        return (
+            "VTCSpring" if vtc[2] == "spring" else "VTCFall",
+            f"Proc. IEEE Veh. Technol. Conf. (VTC{vtc[1]}-{vtc[2].title()})",
+        )
     name = re.sub(r"\bradarconf(?:\d{2}|(?:19|20)\d{2})\b", "radarconf", name)
     # SECON's edition adds 'Annual' before IEEE; this is an explicit alias.
     name = (

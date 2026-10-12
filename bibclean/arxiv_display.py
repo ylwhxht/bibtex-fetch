@@ -65,6 +65,4 @@ def display_field(values, entry_type, ident):
         for existing in labelled_ids(values.get(field, ""))
     ):
         return ""
-    if entry_type in {"misc", "online", "electronic"} and not values.get("howpublished"):
-        return "howpublished"
     return "note"
