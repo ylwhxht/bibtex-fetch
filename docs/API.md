@@ -10,7 +10,7 @@
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| GET | `/api/health` | 应用名、版本、运行状态、是否使用 AI；`title_matching: "strict-v1"` 表示已加载新版标题规则 |
+| GET | `/api/health` | 应用名、版本、运行状态、是否使用 AI；2.1.1 返回 `title_matching: "strict-v2"` 和 `retrieval_diagnostics: "v1"` |
 | GET | `/api/sample` | 读取公开输入示例 |
 | GET | `/api/abbreviations` | 缩写数量及 BibTeX 字符串定义 |
 | GET | `/api/jobs` | 最近 100 个任务摘要 |
@@ -81,6 +81,8 @@ with httpx.Client(base_url=base, timeout=120) as client:
 ```
 
 ## 事件流
+
+2.1.1 的失败条目附 `failure_code`（优先展示原因）和 `issues`（全部来源的原因）。原因包括 `ambiguous_title`、`title_mismatch`、`access_blocked`、`rate_limited`、`network_error`、`source_unavailable`、`invalid_response`、`not_found`、`missing_identifier`。歧义项内 `candidates` 保留真实候选标题、标识符和下载地址；新一轮重试会清空旧诊断，历史事件不删除。成功条目的 `issues` 可能包含此前来源的失败尝试，不代表最终失败。
 
 `GET /api/jobs/{id}/events?stream=true&after=0` 返回 `text/event-stream`。每条 SSE 的 `id` 为任务内递增序号，`data` 为 JSON 事件；支持 `Last-Event-ID` 断线续读。界面通过 EventSource 使用该接口。
 
