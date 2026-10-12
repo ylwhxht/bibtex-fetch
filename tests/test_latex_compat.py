@@ -165,11 +165,6 @@ def test_cli_default_export_uses_same_compatibility(tmp_path, monkeypatch, capsy
 def test_downloaded_export_compiles_with_real_bibtex(
     downloaded, tmp_path, style, include_url, abbreviate, include_fallback
 ):
-    if not all(shutil.which(name) for name in ("pdflatex", "bibtex", "kpsewhich")):
-        pytest.skip("Install a TeX distribution to run the actual compiler regression")
-    found = subprocess.run(["kpsewhich", style + ".bst"], capture_output=True, timeout=15)
-    if found.returncode:
-        pytest.skip(f"The optional {style}.bst is not installed")
     job, store = downloaded
     if include_fallback:
         row = parse_bib(
@@ -180,7 +175,34 @@ def test_downloaded_export_compiles_with_real_bibtex(
         row.update(id=1, status="failed", reason="Synthetic unavailable source")
         job["rows"].append(row)
     files = export_files(job, store, include_url=include_url, abbreviate=abbreviate)
-    (tmp_path / "refs.bib").write_text(files["merged.bib"], encoding="utf-8")
+    bbl = assert_compiles(files["merged.bib"], tmp_path, style, 2 if include_fallback else 1)
+    if include_fallback and abbreviate:
+        assert "IROS" in bbl
+        assert "Intelligent Robots" not in bbl
+
+
+@pytest.mark.parametrize("style", ["plain", "abbrv", "IEEEtran"])
+@pytest.mark.parametrize(
+    "include_url,abbreviate", [(True, False), (False, False), (True, True), (False, True)]
+)
+def test_preprints_and_conference_chapters_compile_without_bibtex_warnings(
+    tmp_path, style, include_url, abbreviate
+):
+    from test_export_semantics import typed_job
+
+    files = export_files(
+        typed_job(), Store(tmp_path / "store"), include_url=include_url, abbreviate=abbreviate
+    )
+    assert_compiles(files["merged.bib"], tmp_path, style, 4)
+
+
+def assert_compiles(bibtex, tmp_path, style, count):
+    if not all(shutil.which(name) for name in ("pdflatex", "bibtex", "kpsewhich")):
+        pytest.skip("Install a TeX distribution to run the actual compiler regression")
+    found = subprocess.run(["kpsewhich", style + ".bst"], capture_output=True, timeout=15)
+    if found.returncode:
+        pytest.skip(f"The optional {style}.bst is not installed")
+    (tmp_path / "refs.bib").write_text(bibtex, encoding="utf-8")
     (tmp_path / "main.tex").write_text(
         r"\documentclass{article}\usepackage[T1]{fontenc}\usepackage{url}"
         r"\begin{document}\nocite{*}\bibliographystyle{" + style + r"}"
@@ -203,9 +225,10 @@ def test_downloaded_export_compiles_with_real_bibtex(
         assert 'string name "' not in log, log
     bbl = (tmp_path / "main.bbl").read_bytes().decode("utf-8", errors="strict")
     assert "\\bibitem" in bbl
-    assert bbl.count("\\bibitem") == (2 if include_fallback else 1)
+    assert bbl.count("\\bibitem") == count
+    # BibTeX can exit 0 while emitting warnings (e.g. empty journal).
+    blg = (tmp_path / "main.blg").read_text(encoding="utf-8")
+    assert not any(line.lower().startswith("warning--") for line in blg.splitlines()), blg
     assert "undefined" not in (tmp_path / "main.log").read_text(encoding="utf-8")
-    if include_fallback and abbreviate:
-        assert "IROS" in bbl
-        assert "Intelligent Robots" not in bbl
     assert (tmp_path / "main.pdf").is_file()
+    return bbl
